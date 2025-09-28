@@ -1,0 +1,520 @@
+/* PolicyPage.css */
+
+* {
+    box-sizing: border-box;
+}
+
+.policy-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    color: white;
+    padding: 100px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><defs><pattern id="circuit-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="60" height="60" fill="none"/><circle cx="30" cy="30" r="1" fill="rgba(255,255,255,0.1)"/><path d="M0,30 L30,30 M30,0 L30,30 M30,30 L60,30 M30,30 L30,60" stroke="rgba(255,255,255,0.05)" stroke-width="0.5" fill="none"/><rect x="25" y="25" width="10" height="10" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/></pattern></defs><rect width="1200" height="600" fill="url(%23circuit-pattern)"/></svg>');
+    background-size: 60px 60px;
+    opacity: 0.4;
+    animation: circuitFlow 30s linear infinite;
+}
+
+@keyframes circuitFlow {
+    0% { transform: translateX(0) translateY(0); }
+    100% { transform: translateX(-60px) translateY(-60px); }
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.hero-shield-icon {
+    width: 64px;
+    height: 64px;
+    color: #93c5fd;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.hero-description {
+    font-size: 1.25rem;
+    color: #93c5fd;
+    line-height: 1.7;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Features Section */
+.features-section {
+    padding: 80px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    position: relative;
+}
+
+.features-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><pattern id="tech-grid" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="80" height="80" fill="none"/><path d="M0,40 L80,40 M40,0 L40,80" stroke="rgba(0,0,0,0.03)" stroke-width="1" fill="none"/><circle cx="40" cy="40" r="2" fill="rgba(0,0,0,0.05)"/><rect x="35" y="35" width="10" height="10" fill="none" stroke="rgba(0,0,0,0.02)" stroke-width="0.5"/></pattern></defs><rect width="1200" height="800" fill="url(%23tech-grid)"/></svg>');
+    background-size: 80px 80px;
+    opacity: 0.6;
+    z-index: 1;
+}
+
+.features-section .container {
+    position: relative;
+    z-index: 2;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    text-align: center;
+    padding: 32px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+.feature-card:hover::before {
+    left: 100%;
+}
+
+.feature-card:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.feature-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.feature-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.feature-blue .feature-icon {
+    color: #3b82f6;
+}
+
+.feature-green .feature-icon {
+    color: #10b981;
+}
+
+.feature-purple .feature-icon {
+    color: #8b5cf6;
+}
+
+.feature-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1f2937;
+}
+
+.feature-description {
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+/* Introduction Section */
+.intro-section {
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+}
+
+.intro-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 48px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.intro-title {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 24px;
+    color: #1f2937;
+}
+
+.intro-content {
+    color: #6b7280;
+    line-height: 1.8;
+}
+
+.intro-content p {
+    margin-bottom: 16px;
+}
+
+.intro-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Policy Sections */
+.policy-sections {
+    padding: 80px 20px;
+    background: #f9fafb;
+}
+
+.sections-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    color: #1f2937;
+    margin-bottom: 48px;
+}
+
+.sections-list {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.policy-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.policy-section:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    width: 100%;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.section-header:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+}
+
+.section-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.section-icon {
+    padding: 12px;
+    background: #dbeafe;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.section-header:hover .section-icon {
+    background: #93c5fd;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    color: #1f2937;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.section-chevron {
+    flex-shrink: 0;
+}
+
+.chevron-icon {
+    width: 24px;
+    height: 24px;
+    color: #6b7280;
+    transition: transform 0.2s ease;
+}
+
+.section-content {
+    padding: 0 32px 32px;
+}
+
+.section-content-inner {
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.section-paragraph {
+    color: #6b7280;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+.section-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+/* Contact Section */
+.contact-section {
+    padding: 80px 20px;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    color: white;
+    text-align: center;
+}
+
+.contact-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.contact-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.contact-description {
+    font-size: 1.25rem;
+    color: #93c5fd;
+    margin-bottom: 32px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.contact-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn {
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+.btn-primary {
+    background: white;
+    color: #2563eb;
+}
+
+.btn-primary:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn-secondary:hover {
+    background: white;
+    color: #2563eb;
+    transform: translateY(-2px);
+}
+
+/* Footer Note */
+.footer-note {
+    padding: 32px 20px;
+    background: #1f2937;
+    color: #d1d5db;
+    text-align: center;
+}
+
+.footer-text {
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (min-width: 640px) {
+    .contact-buttons {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-description {
+        font-size: 1.1rem;
+    }
+
+    .intro-card {
+        padding: 32px 24px;
+    }
+
+    .sections-title {
+        font-size: 2rem;
+    }
+
+    .section-header {
+        padding: 20px 24px;
+    }
+
+    .section-content {
+        padding: 0 24px 24px;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+    }
+
+    .contact-title {
+        font-size: 2rem;
+    }
+
+    .contact-description {
+        font-size: 1.1rem;
+    }
+
+    .btn {
+        padding: 14px 24px;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .hero-section {
+        padding: 60px 16px;
+    }
+
+    .hero-title {
+        font-size: 1.75rem;
+    }
+
+    .hero-description {
+        font-size: 1rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .feature-card {
+        padding: 24px;
+    }
+
+    .intro-card {
+        padding: 24px 20px;
+    }
+
+    .intro-title {
+        font-size: 1.75rem;
+    }
+
+    .sections-title {
+        font-size: 1.75rem;
+    }
+
+    .section-header {
+        padding: 16px 20px;
+    }
+
+    .section-content {
+        padding: 0 20px 20px;
+    }
+
+    .section-header-left {
+        gap: 12px;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+    }
+
+    .contact-title {
+        font-size: 1.75rem;
+    }
+}

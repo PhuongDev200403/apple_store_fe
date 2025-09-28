@@ -1,0 +1,18 @@
+.site-footer { background:#0f1115; color:#cdd6f4; margin-top:24px; }
+.site-footer .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:32px; padding:40px 0; }
+.site-footer .brand { font-size:24px; font-weight:800; color:#fff; margin-bottom:8px; }
+.site-footer .footer-title { font-weight:700; color:#89b4fa; margin-bottom:8px; }
+.site-footer ul { list-style:none; padding:0; margin:0; }
+.site-footer li { margin:6px 0; color:#cdd6f4; }
+.site-footer .socials .btn { display:inline-block; padding:8px 12px; border-radius:10px; margin-right:8px; margin-bottom:8px; color:#fff; }
+.site-footer .socials .fb { background:#1877f2; }
+.site-footer .socials .ig { background:linear-gradient(45deg,#fd1d1d,#fcb045); }
+.site-footer .socials .tt { background:#000; }
+.site-footer .payments .badge { display:inline-block; background:#1e2230; color:#cdd6f4; border:1px solid #2b3040; padding:6px 10px; border-radius:8px; margin-right:8px; margin-bottom:8px; }
+.site-footer .copy { border-top:1px solid #1e2230; padding:16px 0; text-align:center; color:#94a3b8; }
+
+@media (max-width: 900px) {
+  .site-footer .footer-grid { grid-template-columns:1fr; gap:20px; padding: 40px 16px; }
+  .site-footer .copy { padding: 16px; }
+}
+
