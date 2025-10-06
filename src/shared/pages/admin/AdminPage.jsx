@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import "./AdminPage.css";
 import UsersSection from "./UsersSection";
+import CategoriesSection from "./CategoriesSection";
+
 
 
 
@@ -12,12 +14,12 @@ import UsersSection from "./UsersSection";
 //   </div>
 // );
 
-const CategoriesSection = () => (
-  <div>
-    <h3>📂 Quản lý danh mục</h3>
-    <p>Chức năng quản lý danh mục sẽ được phát triển tại đây.</p>
-  </div>
-);
+// const CategoriesSection = () => (
+//   <div>
+//     <h3>📂 Quản lý danh mục</h3>
+//     <p>Chức năng quản lý danh mục sẽ được phát triển tại đây.</p>
+//   </div>
+// );
 
 const SubCategoriesSection = () => (
   <div>
