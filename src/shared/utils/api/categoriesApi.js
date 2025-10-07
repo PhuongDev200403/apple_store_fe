@@ -7,6 +7,15 @@ const API = axios.create({
   },
 });
 
+// 🟢 Gắn token admin ở đây
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token"); // lưu token sau login
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const getCategories = () => API.get("/categories");
 export const createCategory = (data) => API.post("/categories", data);
 export const updateCategory = (id, data) => API.put(`/categories/${id}`, data);
