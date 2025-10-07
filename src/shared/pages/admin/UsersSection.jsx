@@ -1,28 +1,20 @@
 import React, { useEffect, useState } from "react";
-import {
-  getUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-} from "../../utils/api/userApi";
+import { getUsers, createUser, updateUser, deleteUser } from "../../utils/api/userApi";
 
 function UsersSection() {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
     username: "",
-    email: "",
     password: "",
     phone: "",
+    email: "",
     role: "USER",
   });
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
+  // Gọi API lấy danh sách user
   const loadUsers = async () => {
     setLoading(true);
     try {
@@ -41,28 +33,26 @@ function UsersSection() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  // Gửi form thêm hoặc cập nhật
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const body = {
-        username: form.username,
-        email: form.email,
-        password: form.password || "123456", // tạm password mặc định nếu rỗng
-        phone: form.phone || "",
-        role: form.role,
-      };
-
+      const payload = { ...form };
       if (editingId) {
-        await updateUser(editingId, body);
+        await updateUser(editingId, payload);
       } else {
-        await createUser(body);
+        await createUser(payload);
       }
       await loadUsers();
       setForm({
         username: "",
-        email: "",
         password: "",
         phone: "",
+        email: "",
         role: "USER",
       });
       setEditingId(null);
@@ -73,10 +63,10 @@ function UsersSection() {
 
   const handleEdit = (u) => {
     setForm({
-      username: u.username || "",
-      email: u.email || "",
+      username: u.username,
       password: "",
       phone: u.phone || "",
+      email: u.email || "",
       role: u.role || "USER",
     });
     setEditingId(u.id);
@@ -94,8 +84,7 @@ function UsersSection() {
 
   const filtered = users.filter(
     (u) =>
-      (u.username &&
-        u.username.toLowerCase().includes(search.toLowerCase())) ||
+      (u.username && u.username.toLowerCase().includes(search.toLowerCase())) ||
       (u.email && u.email.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -119,8 +108,8 @@ function UsersSection() {
             <tr>
               <th>#</th>
               <th>Username</th>
-              <th>Email</th>
               <th>Phone</th>
+              <th>Email</th>
               <th>Role</th>
               <th>Hành động</th>
             </tr>
@@ -131,17 +120,14 @@ function UsersSection() {
                 <tr key={u.id}>
                   <td>{idx + 1}</td>
                   <td>{u.username}</td>
+                  <td>{u.phone || "-"}</td>
                   <td>{u.email}</td>
-                  <td>{u.phone}</td>
                   <td>{u.role}</td>
                   <td>
                     <button className="btn edit" onClick={() => handleEdit(u)}>
                       ✏️ Sửa
                     </button>
-                    <button
-                      className="btn delete"
-                      onClick={() => handleDelete(u.id)}
-                    >
+                    <button className="btn delete" onClick={() => handleDelete(u.id)}>
                       🗑️ Xóa
                     </button>
                   </td>
@@ -149,10 +135,7 @@ function UsersSection() {
               ))
             ) : (
               <tr>
-                <td
-                  colSpan="6"
-                  style={{ textAlign: "center", color: "#6b7280" }}
-                >
+                <td colSpan="6" style={{ textAlign: "center", color: "#6b7280" }}>
                   Không có người dùng
                 </td>
               </tr>
@@ -171,17 +154,11 @@ function UsersSection() {
           required
         />
         <input
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-          required
-        />
-        <input
           type="password"
-          placeholder="Mật khẩu"
+          placeholder="Password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required={!editingId}
         />
         <input
           type="text"
@@ -189,11 +166,18 @@ function UsersSection() {
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
         />
+        <input
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
         >
           <option value="ADMIN">ADMIN</option>
+          <option value="STAFF">STAFF</option>
           <option value="USER">USER</option>
         </select>
         <button type="submit" className="btn save">
@@ -204,13 +188,7 @@ function UsersSection() {
             type="button"
             className="btn cancel"
             onClick={() => {
-              setForm({
-                username: "",
-                email: "",
-                password: "",
-                phone: "",
-                role: "USER",
-              });
+              setForm({ username: "", password: "", phone: "", email: "", role: "USER" });
               setEditingId(null);
             }}
           >
@@ -223,3 +201,4 @@ function UsersSection() {
 }
 
 export default UsersSection;
+
