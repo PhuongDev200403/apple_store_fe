@@ -377,7 +377,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   justify-content: center;
-  align-items: start;
+  align-items: stretch;
   max-width: 100%;
 }
 
@@ -389,6 +389,9 @@
   transition: all 0.3s ease;
   border: 1px solid rgba(0, 0, 0, 0.05);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .product-card:hover {
@@ -404,6 +407,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .product-image img {
@@ -466,6 +470,9 @@
 .product-info {
   padding: 20px;
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .warranty-badge {
@@ -485,10 +492,10 @@
   color: #1f2937;
   margin-bottom: 12px;
   line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .price-section {
@@ -516,6 +523,7 @@
   font-size: 12px !important;
   line-height: 1.4;
   margin-bottom: 16px;
+  flex: 1;
 }
 
 .add-to-cart-btn {
@@ -558,6 +566,7 @@
   .products-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
+    align-items: stretch;
   }
 }
 
@@ -620,6 +629,7 @@
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    align-items: stretch;
   }
   
   .product-image {
@@ -665,6 +675,7 @@
   .products-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+    align-items: stretch;
   }
   
   .product-image {

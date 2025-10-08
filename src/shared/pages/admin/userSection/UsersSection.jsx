@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getUsers, createUser, updateUser, deleteUser } from "../../utils/api/userApi";
+import { getUsers, createUser, updateUser, deleteUser } from "../../../utils/api/userApi";
+import "./UsersSection.css";
 
 function UsersSection() {
   const [users, setUsers] = useState([]);
@@ -13,13 +14,13 @@ function UsersSection() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
-  // Gọi API lấy danh sách user
+  // Load danh sách users
   const loadUsers = async () => {
     setLoading(true);
     try {
       const res = await getUsers();
-      console.log("API /users response:", res.data);
       if (res.data && Array.isArray(res.data.result)) {
         setUsers(res.data.result);
       } else {
@@ -37,7 +38,6 @@ function UsersSection() {
     loadUsers();
   }, []);
 
-  // Gửi form thêm hoặc cập nhật
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -56,6 +56,7 @@ function UsersSection() {
         role: "USER",
       });
       setEditingId(null);
+      setShowForm(false);
     } catch (err) {
       console.error("Lỗi khi lưu user:", err);
     }
@@ -70,10 +71,11 @@ function UsersSection() {
       role: u.role || "USER",
     });
     setEditingId(u.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa user này?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa người dùng này?")) return;
     try {
       await deleteUser(id);
       await loadUsers();
@@ -90,7 +92,12 @@ function UsersSection() {
 
   return (
     <div className="user-section">
-      <h3>👤 Quản lý người dùng</h3>
+      <div className="header-bar">
+        <h3>👤 Quản lý người dùng</h3>
+        <button className="btn add" onClick={() => setShowForm(!showForm)}>
+          {showForm ? "➖ Ẩn form" : "➕ Thêm người dùng"}
+        </button>
+      </div>
 
       <input
         type="text"
@@ -122,7 +129,19 @@ function UsersSection() {
                   <td>{u.username}</td>
                   <td>{u.phone || "-"}</td>
                   <td>{u.email}</td>
-                  <td>{u.role}</td>
+                  <td>
+                    <span
+                      className={`role-tag ${
+                        u.role === "ADMIN"
+                          ? "admin"
+                          : u.role === "STAFF"
+                          ? "staff"
+                          : "user"
+                      }`}
+                    >
+                      {u.role}
+                    </span>
+                  </td>
                   <td>
                     <button className="btn edit" onClick={() => handleEdit(u)}>
                       ✏️ Sửa
@@ -144,61 +163,69 @@ function UsersSection() {
         </table>
       )}
 
-      <form onSubmit={handleSubmit} className="user-form">
-        <h4>{editingId ? "Cập nhật User" : "Thêm User"}</h4>
-        <input
-          type="text"
-          placeholder="Username"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          required={!editingId}
-        />
-        <input
-          type="text"
-          placeholder="Số điện thoại"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
-        <select
-          value={form.role}
-          onChange={(e) => setForm({ ...form, role: e.target.value })}
-        >
-          <option value="ADMIN">ADMIN</option>
-          <option value="STAFF">STAFF</option>
-          <option value="USER">USER</option>
-        </select>
-        <button type="submit" className="btn save">
-          {editingId ? "Lưu" : "Thêm"}
-        </button>
-        {editingId && (
-          <button
-            type="button"
-            className="btn cancel"
-            onClick={() => {
-              setForm({ username: "", password: "", phone: "", email: "", role: "USER" });
-              setEditingId(null);
-            }}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="user-form">
+          <h4>{editingId ? "Cập nhật User" : "Thêm User mới"}</h4>
+          <input
+            type="text"
+            placeholder="Username"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required={!editingId}
+          />
+          <input
+            type="text"
+            placeholder="Số điện thoại"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <select
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
           >
-            Hủy
-          </button>
-        )}
-      </form>
+            <option value="ADMIN">ADMIN</option>
+            <option value="USER">USER</option>
+          </select>
+
+          <div className="form-actions">
+            <button type="submit" className="btn save">
+              {editingId ? "💾 Lưu" : "➕ Thêm"}
+            </button>
+            <button
+              type="button"
+              className="btn cancel"
+              onClick={() => {
+                setForm({
+                  username: "",
+                  password: "",
+                  phone: "",
+                  email: "",
+                  role: "USER",
+                });
+                setEditingId(null);
+                setShowForm(false);
+              }}
+            >
+              ❌ Hủy
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
 
 export default UsersSection;
-

@@ -4,7 +4,8 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-} from "../../utils/api/categoriesApi";
+} from "../../../utils/api/categoriesApi";
+import "./CategoriesSection.css"; // thêm file css nếu bạn muốn tách style
 
 function CategoriesSection() {
   const [categories, setCategories] = useState([]);
@@ -12,12 +13,12 @@ function CategoriesSection() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const loadCategories = async () => {
     setLoading(true);
     try {
       const res = await getCategories();
-      console.log("API /categories response:", res.data);
       if (res.data && Array.isArray(res.data.result)) {
         setCategories(res.data.result);
       } else {
@@ -47,6 +48,7 @@ function CategoriesSection() {
       await loadCategories();
       setForm({ name: "", description: "" });
       setEditingId(null);
+      setShowForm(false);
     } catch (err) {
       console.error("Lỗi khi lưu category:", err);
     }
@@ -55,6 +57,7 @@ function CategoriesSection() {
   const handleEdit = (c) => {
     setForm({ name: c.name, description: c.description || "" });
     setEditingId(c.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -73,7 +76,19 @@ function CategoriesSection() {
 
   return (
     <div className="category-section">
-      <h3>📂 Quản lý danh mục</h3>
+      <div className="header-bar">
+        <h3>📂 Quản lý danh mục</h3>
+        <button
+          className="btn add"
+          onClick={() => {
+            setShowForm(!showForm);
+            setForm({ name: "", description: "" });
+            setEditingId(null);
+          }}
+        >
+          {showForm ? "✖ Đóng form" : "➕ Thêm danh mục"}
+        </button>
+      </div>
 
       <input
         type="text"
@@ -106,7 +121,10 @@ function CategoriesSection() {
                     <button className="btn edit" onClick={() => handleEdit(c)}>
                       ✏️ Sửa
                     </button>
-                    <button className="btn delete" onClick={() => handleDelete(c.id)}>
+                    <button
+                      className="btn delete"
+                      onClick={() => handleDelete(c.id)}
+                    >
                       🗑️ Xóa
                     </button>
                   </td>
@@ -123,36 +141,39 @@ function CategoriesSection() {
         </table>
       )}
 
-      <form onSubmit={handleSubmit} className="category-form">
-        <h4>{editingId ? "Cập nhật danh mục" : "Thêm danh mục"}</h4>
-        <input
-          type="text"
-          placeholder="Tên danh mục"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          required
-        />
-        <textarea
-          placeholder="Mô tả"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-        />
-        <button type="submit" className="btn save">
-          {editingId ? "Lưu" : "Thêm"}
-        </button>
-        {editingId && (
-          <button
-            type="button"
-            className="btn cancel"
-            onClick={() => {
-              setForm({ name: "", description: "" });
-              setEditingId(null);
-            }}
-          >
-            Hủy
-          </button>
-        )}
-      </form>
+      {showForm && (
+        <form onSubmit={handleSubmit} className="category-form">
+          <h4>{editingId ? "Cập nhật danh mục" : "Thêm danh mục mới"}</h4>
+          <input
+            type="text"
+            placeholder="Tên danh mục"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <textarea
+            placeholder="Mô tả"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+          <div className="form-actions">
+            <button type="submit" className="btn save">
+              {editingId ? "Lưu thay đổi" : "Thêm"}
+            </button>
+            <button
+              type="button"
+              className="btn cancel"
+              onClick={() => {
+                setForm({ name: "", description: "" });
+                setEditingId(null);
+                setShowForm(false);
+              }}
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

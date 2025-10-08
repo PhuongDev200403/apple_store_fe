@@ -1,26 +1,9 @@
 import React, { useState } from "react";
 import "./AdminPage.css";
-import UsersSection from "./UsersSection";
-import CategoriesSection from "./CategoriesSection";
+import UsersSection from "./userSection/UsersSection";
+import CategoriesSection from "./categorySection/CategoriesSection";
 
-
-
-
-// Các section placeholder
-// const UsersSection = () => (
-//   <div>
-//     <h3>👤 Quản lý người dùng</h3>
-//     <p>Chức năng quản lý người dùng sẽ được phát triển tại đây.</p>
-//   </div>
-// );
-
-// const CategoriesSection = () => (
-//   <div>
-//     <h3>📂 Quản lý danh mục</h3>
-//     <p>Chức năng quản lý danh mục sẽ được phát triển tại đây.</p>
-//   </div>
-// );
-
+// Placeholder sections (tạm thời)
 const SubCategoriesSection = () => (
   <div>
     <h3>📁 Quản lý danh mục con</h3>
@@ -70,7 +53,7 @@ const ReportsSection = () => (
   </div>
 );
 
-function AdminPage() {
+export default function AdminPage() {
   const [activeSection, setActiveSection] = useState("users");
 
   const renderSection = () => {
@@ -100,7 +83,6 @@ function AdminPage() {
 
   return (
     <div className="admin-page">
-      {/* Sidebar bên trái */}
       <aside className="sidebar">
         <h2 className="sidebar-title">Trang Admin</h2>
         <nav>
@@ -116,10 +98,9 @@ function AdminPage() {
         </nav>
       </aside>
 
-      {/* Nội dung chính */}
-      <main className="content">{renderSection()}</main>
+      <section className="content">
+        {renderSection()}
+      </section>
     </div>
   );
 }
-
-export default AdminPage;

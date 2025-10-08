@@ -10,6 +10,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  function decodeJwtPayload(token) {
+    if (!token || typeof token !== 'string') return {};
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return {};
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '==='.slice((base64.length + 3) % 4);
+      const json = atob(padded);
+      return JSON.parse(json);
+    } catch (_e) {
+      return {};
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -20,11 +34,27 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const res = await login({ email, password });
-      // Expect: { token, role }
-      if (res?.token) {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('role', res.role || 'user');
-        if ((res.role || 'user') === 'admin') navigate('/admin'); else navigate('/');
+      // Chuẩn hoá dữ liệu phản hồi: hỗ trợ nhiều định dạng { token, role } hoặc { data: { token, role } }
+      const payload = res?.data ? res.data : res;
+      const token = payload?.token || payload?.accessToken || '';
+      let rawRole = payload?.role || payload?.roles || '';
+
+      if (token) {
+        // Lưu token/role để sử dụng cho các chức năng khác
+        localStorage.setItem('token', token);
+        // Nếu phản hồi không có role, thử giải mã từ JWT
+        if (!rawRole) {
+          const jwt = decodeJwtPayload(token);
+          rawRole = jwt?.roles || jwt?.role || '';
+        }
+        // Chuẩn hoá role về dạng chữ thường; hỗ trợ cả 'ADMIN', 'ROLE_ADMIN', ['ADMIN']...
+        let roleStr = Array.isArray(rawRole) ? rawRole.join(',') : String(rawRole || 'user');
+        roleStr = roleStr.toLowerCase();
+        const isAdmin = roleStr.includes('admin');
+        localStorage.setItem('role', isAdmin ? 'admin' : 'user');
+
+        // Điều hướng theo role
+        navigate(isAdmin ? '/admin' : '/');
       } else if (res?.message) {
         setError(res.message);
       } else {
