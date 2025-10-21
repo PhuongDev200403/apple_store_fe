@@ -2,14 +2,7 @@ import React, { useState } from "react";
 import "./AdminPage.css";
 import UsersSection from "./userSection/UsersSection";
 import CategoriesSection from "./categorySection/CategoriesSection";
-
-// Placeholder sections (tạm thời)
-const SubCategoriesSection = () => (
-  <div>
-    <h3>📁 Quản lý danh mục con</h3>
-    <p>Chức năng quản lý danh mục con sẽ được phát triển tại đây.</p>
-  </div>
-);
+import CategoryChildSection from "./categoryChildSection/CategoryChildSection";
 
 const ProductsSection = () => (
   <div>
@@ -63,7 +56,7 @@ export default function AdminPage() {
       case "categories":
         return <CategoriesSection />;
       case "subcategories":
-        return <SubCategoriesSection />;
+        return <CategoryChildSection />;
       case "products":
         return <ProductsSection />;
       case "variants":
