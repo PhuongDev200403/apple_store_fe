@@ -1,0 +1,93 @@
+:root {
+  --bg: #ffffff;
+  --bg-muted: #f5f7fb;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #0ea5e9;
+  --primary-700: #0369a1;
+  --accent: #111827;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 18px; /* Tăng base font size */
+}
+
+html { overflow-x: hidden; }
+
+body { margin: 0; background: var(--bg); color: var(--text); min-width: 320px; font-size: 18px !important; overflow-x: hidden; }
+
+/* Global font size overrides */
+* {
+  font-size: inherit;
+}
+
+/* Specific overrides for common elements */
+span, div, a, button, li, td, th {
+  font-size: 18px !important;
+}
+
+/* Small text elements */
+small, .text-sm {
+  font-size: 16px !important;
+}
+
+/* Large text elements */
+.text-lg {
+  font-size: 20px !important;
+}
+
+.text-xl {
+  font-size: 22px !important;
+}
+
+.container { width: 100%; max-width: 1600px; margin: 0 auto; padding-left: 30px; padding-right: 30px; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:10px; padding:10px 14px; font-weight:600; border:1px solid var(--border); cursor:pointer; transition: all .2s ease; }
+.btn:disabled { opacity:.6; cursor:not-allowed; }
+.btn-primary { color:#fff; background: var(--primary); border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-700); border-color: var(--primary-700); }
+.btn-secondary { background:#f8fafc; color:var(--text); }
+.btn-secondary:hover { background:#eef2f7; }
+
+/* Forms */
+input, select, textarea { font-family: inherit; font-size: 18px !important; }
+input[type="text"], input[type="email"], input[type="password"], input[type="tel"], select, textarea {
+  width: 100%; padding: 14px 18px; border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--text);
+}
+label { font-size: 17px !important; color: var(--text-muted); }
+
+/* Headings & spacing */
+h1 { font-size: 36px !important; line-height: 1.25; margin: 12px 0 20px; }
+h2 { font-size: 30px !important; margin: 12px 0 16px; }
+h3 { font-size: 24px !important; margin: 10px 0 14px; }
+p { margin: 10px 0; color: var(--text); font-size: 18px !important; line-height: 1.6; }
+.page { padding: 16px 0 24px; }
+.card { background:#fff; border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.06); }
+
+/* Override for specific h1 styles */
+h1.large {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button { font-family: inherit; }
+
+/* Responsive helpers */
+@media (max-width: 1200px) {
+  .container { max-width: 1200px; padding-left: 20px; padding-right: 20px; }
+}
+
+@media (max-width: 768px) {
+  .container { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (max-width: 480px) {
+  .container { padding-left: 12px; padding-right: 12px; }
+}
