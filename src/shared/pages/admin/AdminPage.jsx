@@ -2,28 +2,30 @@ import React, { useState } from "react";
 import "./AdminPage.css";
 import UsersSection from "./userSection/UsersSection";
 import CategoriesSection from "./categorySection/CategoriesSection";
+import ProductsSection from "./productSection/ProductsSection";
+import SubCategoriesSection from "./subCategoriesSection/SubCategoriesSection";
+import VariantsSection from "./variantsSection/VariantsSection";
 
-// Placeholder sections (tạm thời)
-const SubCategoriesSection = () => (
-  <div>
-    <h3>📁 Quản lý danh mục con</h3>
-    <p>Chức năng quản lý danh mục con sẽ được phát triển tại đây.</p>
-  </div>
-);
+// const SubCategoriesSection = () => (
+//   <div>
+//     <h3>📁 Quản lý danh mục con</h3>
+//     <p>Chức năng quản lý danh mục con sẽ được phát triển tại đây.</p>
+//   </div>
+// );
 
-const ProductsSection = () => (
-  <div>
-    <h3>🛒 Quản lý sản phẩm</h3>
-    <p>Chức năng quản lý sản phẩm sẽ được phát triển tại đây.</p>
-  </div>
-);
+// const ProductsSection = () => (
+//   <div>
+//     <h3>🛒 Quản lý sản phẩm</h3>
+//     <p>Chức năng quản lý sản phẩm sẽ được phát triển tại đây.</p>
+//   </div>
+// );
 
-const VariantsSection = () => (
-  <div>
-    <h3>🎨 Quản lý biến thể sản phẩm</h3>
-    <p>Chức năng quản lý biến thể sản phẩm sẽ được phát triển tại đây.</p>
-  </div>
-);
+// const VariantsSection = () => (
+//   <div>
+//     <h3>🎨 Quản lý biến thể sản phẩm</h3>
+//     <p>Chức năng quản lý biến thể sản phẩm sẽ được phát triển tại đây.</p>
+//   </div>
+// );
 
 const OrdersSection = () => (
   <div>
