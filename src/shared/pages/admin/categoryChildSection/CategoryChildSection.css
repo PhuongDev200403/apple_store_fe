@@ -1,0 +1,181 @@
+.user-section {
+    background: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    font-family: "Segoe UI", Roboto, sans-serif;
+    color: #333;
+  }
+  
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .header-bar h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  /* Buttons */
+  .btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .btn.add {
+    background: #2563eb;
+    color: white;
+  }
+  
+  .btn.save {
+    background: #22c55e;
+    color: white;
+  }
+  
+  .btn.cancel {
+    background: #9ca3af;
+    color: white;
+  }
+  
+  .btn.edit {
+    background: #3b82f6;
+    color: white;
+    margin-right: 8px;
+  }
+  
+  .btn.delete {
+    background: #ef4444;
+    color: white;
+  }
+  
+  /* Search */
+  .search-box {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    outline: none;
+    font-size: 0.95rem;
+    margin-bottom: 18px;
+    transition: border-color 0.2s ease;
+  }
+  
+  .search-box:focus {
+    border-color: #2563eb;
+  }
+  
+  /* Table */
+  .user-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+  
+  .user-table th,
+  .user-table td {
+    padding: 12px 16px;
+    text-align: left;
+  }
+  
+  .user-table th {
+    background-color: #f3f4f6;
+    color: #1e293b;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  
+  .user-table tr {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .user-table tr:hover {
+    background-color: #f9fafb;
+  }
+  
+  /* Role tag */
+  .role-tag {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  
+  .role-tag.admin {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  
+  .role-tag.staff {
+    background: #dbeafe;
+    color: #1e3a8a;
+  }
+  
+  .role-tag.user {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  /* Form */
+  .user-form {
+    background-color: #f8fafc;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    margin-top: 10px;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .user-form h4 {
+    margin-bottom: 12px;
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  
+  .user-form input,
+  .user-form select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    outline: none;
+  }
+  
+  .user-form input:focus,
+  .user-form select:focus {
+    border-color: #2563eb;
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  /* Animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
