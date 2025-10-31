@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { FaBars, FaUser, FaShoppingCart, FaSearch, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { getAllParentCategories } from '../utils/api/categoryApi';
 import './header.css';
 
 
 export default function Header() {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
   useEffect(() => {
     getAllParentCategories()
@@ -38,6 +40,18 @@ export default function Header() {
   }, [isAccountOpen]);
 
   // categories state is populated from API
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      setIsLoggedIn(false);
+      setIsAccountOpen(false);
+      navigate('/dang-nhap');
+    } catch (_e) {
+      // no-op
+    }
+  };
 
   return (
     <header className="header">
@@ -75,9 +89,16 @@ export default function Header() {
           </div>
           {isAccountOpen && (
             <div className="account-menu">
-              <Link to="/dang-nhap" onClick={() => setIsAccountOpen(false)}>Đăng nhập</Link>
-              <Link to="/dang-ky" onClick={() => setIsAccountOpen(false)}>Đăng ký</Link>
+              {!isLoggedIn && (
+                <>
+                  <Link to="/dang-nhap" onClick={() => setIsAccountOpen(false)}>Đăng nhập</Link>
+                  <Link to="/dang-ky" onClick={() => setIsAccountOpen(false)}>Đăng ký</Link>
+                </>
+              )}
               <Link to="/wishlist" onClick={() => setIsAccountOpen(false)}>Sản phẩm yêu thích</Link>
+              {isLoggedIn && (
+                <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
+              )}
             </div>
           )}
         </div>

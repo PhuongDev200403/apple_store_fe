@@ -5,7 +5,7 @@ import './auth.css';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', phone:'', password:'' });
+  const [form, setForm] = useState({ username:'', email:'', phone:'', password:'' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,14 +14,14 @@ export default function RegisterPage() {
   async function handleSubmit(e){
     e.preventDefault();
     setError('');
-    const { firstName, lastName, email, phone, password } = form;
-    if(!firstName || !lastName || !email || !phone || !password){
-      setError('Vui lòng nhập đầy đủ thông tin');
+    const { username, email, phone, password } = form;
+    if(!username || !email || !phone || !password){
+      setError('Vui lòng nhập đầy đủ thông tin (username, email, phone, password)');
       return;
     }
     try {
       setLoading(true);
-      const res = await register({ firstName, lastName, email, phone, password });
+      const res = await register({ username, email, phone, password });
       if(res?.message){
         // Assume success returns message or token; redirect to login
         navigate('/dang-nhap');
@@ -41,8 +41,7 @@ export default function RegisterPage() {
         <h1>Đăng ký</h1>
         <div style={{textAlign:'center', color:'#64748b', marginBottom:8}}>Đã có tài khoản, <Link to="/dang-nhap">đăng nhập tại đây</Link></div>
         {error && <div className="auth-error">{error}</div>}
-        <div className="form-group"><label>Họ</label><input value={form.lastName} onChange={(e)=>update('lastName', e.target.value)} placeholder="Họ" required/></div>
-        <div className="form-group"><label>Tên</label><input value={form.firstName} onChange={(e)=>update('firstName', e.target.value)} placeholder="Tên" required/></div>
+        <div className="form-group"><label>Tên đăng nhập</label><input value={form.username} onChange={(e)=>update('username', e.target.value)} placeholder="Tên đăng nhập" required/></div>
         <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={(e)=>update('email', e.target.value)} placeholder="Email" required/></div>
         <div className="form-group"><label>Số điện thoại</label><input value={form.phone} onChange={(e)=>update('phone', e.target.value)} placeholder="Số điện thoại" required/></div>
         <div className="form-group"><label>Mật khẩu</label><input type="password" value={form.password} onChange={(e)=>update('password', e.target.value)} placeholder="Mật khẩu" required/></div>
