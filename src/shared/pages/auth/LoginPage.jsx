@@ -34,10 +34,24 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const res = await login({ email, password });
-      // Chuẩn hoá dữ liệu phản hồi: hỗ trợ nhiều định dạng { token, role } hoặc { data: { token, role } }
+      // Chuẩn hoá dữ liệu phản hồi: hỗ trợ nhiều định dạng
+      // { token, role }, { data: { token, role } }, { accessToken }, { access_token }
       const payload = res?.data ? res.data : res;
-      const token = payload?.token || payload?.accessToken || '';
-      let rawRole = payload?.role || payload?.roles || '';
+      const token =
+        payload?.token ||
+        payload?.accessToken ||
+        payload?.access_token ||
+        payload?.result ||
+        payload?.data?.token ||
+        payload?.data?.accessToken ||
+        payload?.data?.access_token ||
+        '';
+      let rawRole =
+        payload?.role ||
+        payload?.roles ||
+        payload?.data?.role ||
+        payload?.data?.roles ||
+        '';
 
       if (token) {
         // Lưu token/role để sử dụng cho các chức năng khác

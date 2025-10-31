@@ -5,6 +5,7 @@ import CategoriesSection from "./categorySection/CategoriesSection";
 import ProductsSection from "./productSection/ProductsSection";
 import SubCategoriesSection from "./subCategoriesSection/SubCategoriesSection";
 import VariantsSection from "./variantsSection/VariantsSection";
+import ReportsSection from "./reportsSection/ReportsSection";
 
 // const SubCategoriesSection = () => (
 //   <div>
@@ -48,12 +49,7 @@ const CartSection = () => (
   </div>
 );
 
-const ReportsSection = () => (
-  <div>
-    <h3>📊 Báo cáo thống kê</h3>
-    <p>Báo cáo doanh thu, sản phẩm bán chạy, khách hàng, ... sẽ hiển thị tại đây.</p>
-  </div>
-);
+// ReportsSection moved to dedicated component
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState("users");

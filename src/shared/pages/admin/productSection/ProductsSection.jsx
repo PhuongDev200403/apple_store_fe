@@ -1,56 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { getAllProducts, createProduct, updateProduct } from "../../../utils/api/productApi";
+import { getAllSeries } from "../../../utils/api/categoryApi";
 import "./ProductsSection.css";
 
 function ProductsSection() {
-  // Dữ liệu mẫu (giống JSON của cậu)
-  const sampleProducts = [
-    { id: 1, name: "Iphone 15 Pro Max", status: "ACTIVE", categoryChildId: 1 },
-    { id: 3, name: "Iphone 15", status: "ACTIVE", categoryChildId: 1 },
-    { id: 4, name: "Iphone 15 Pro", status: "ACTIVE", categoryChildId: 1 },
-    { id: 9, name: "Iphone 13", status: "ACTIVE", categoryChildId: 3 },
-  ];
-
-  const [products, setProducts] = useState(sampleProducts);
+  const [products, setProducts] = useState([]);
   const [form, setForm] = useState({ name: "", categoryChildId: "" });
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [categoryChildren, setCategoryChildren] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
 
-  // Dữ liệu danh mục con mẫu
-  const categoryChildren = [
-    { id: 1, name: "Iphone Series 15" },
-    { id: 2, name: "Iphone Series 14" },
-    { id: 3, name: "Iphone Series 13" },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      try {
+        const [prods, series] = await Promise.all([
+          getAllProducts(),
+          getAllSeries(),
+        ]);
+        if (!mounted) return;
+        setProducts(Array.isArray(prods) ? prods : []);
+        setCategoryChildren(Array.isArray(series) ? series : []);
+      } catch (_e) {
+        if (!mounted) return;
+        setProducts([]);
+        setCategoryChildren([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.categoryChildId) {
       alert("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
-
-    if (editingId) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingId
-            ? { ...p, name: form.name, categoryChildId: parseInt(form.categoryChildId) }
-            : p
-        )
-      );
-    } else {
-      const newProduct = {
-        id: products.length + 1,
-        name: form.name,
-        status: "ACTIVE",
-        categoryChildId: parseInt(form.categoryChildId),
-      };
-      setProducts([...products, newProduct]);
+    try {
+      if (editingId) {
+        await updateProduct(editingId, form);
+      } else {
+        if (!isAdmin) return alert("Bạn không có quyền thêm sản phẩm.");
+        await createProduct(form);
+      }
+      const [prods] = await Promise.all([getAllProducts()]);
+      setProducts(Array.isArray(prods) ? prods : []);
+      setForm({ name: "", categoryChildId: "" });
+      setEditingId(null);
+      setShowForm(false);
+    } catch (err) {
+      alert(err?.message || "Lưu thất bại");
     }
-
-    setForm({ name: "", categoryChildId: "" });
-    setEditingId(null);
-    setShowForm(false);
   };
 
   const handleEdit = (p) => {
@@ -63,8 +70,7 @@ function ProductsSection() {
   };
 
   const handleDelete = (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này?")) return;
-    setProducts(products.filter((p) => p.id !== id));
+    alert("Tạm thời chưa hỗ trợ xóa sản phẩm. Sẽ bổ sung sau.");
   };
 
   const filtered = products.filter((p) =>
@@ -83,6 +89,7 @@ function ProductsSection() {
         <button
           className="btn add"
           onClick={() => {
+            if (!isAdmin) return alert("Bạn không có quyền thêm sản phẩm.");
             setShowForm(!showForm);
             setForm({ name: "", categoryChildId: "" });
             setEditingId(null);
@@ -111,7 +118,13 @@ function ProductsSection() {
           </tr>
         </thead>
         <tbody>
-          {filtered.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan="5" style={{ textAlign: "center", color: "#6b7280" }}>
+                Đang tải...
+              </td>
+            </tr>
+          ) : filtered.length > 0 ? (
             filtered.map((p, idx) => (
               <tr key={p.id}>
                 <td>{idx + 1}</td>
@@ -119,10 +132,10 @@ function ProductsSection() {
                 <td>{getCategoryName(p.categoryChildId)}</td>
                 <td>{p.status}</td>
                 <td>
-                  <button className="btn edit" onClick={() => handleEdit(p)}>
+                  <button className="btn edit" onClick={() => handleEdit(p)} disabled={!isAdmin}>
                     ✏️ Sửa
                   </button>
-                  <button className="btn delete" onClick={() => handleDelete(p.id)}>
+                  <button className="btn delete" onClick={() => handleDelete(p.id)} disabled={!isAdmin}>
                     🗑️ Xóa
                   </button>
                 </td>

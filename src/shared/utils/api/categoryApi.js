@@ -12,6 +12,35 @@ async function httpGet(path) {
   return data;
 }
 
+async function httpWithBody(path, method, body) {
+  const url = `${BASE_URL}${path}`;
+  const token = localStorage.getItem('token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message = data?.message || `Request failed ${res.status}`;
+    const error = new Error(message);
+    error.code = data?.code;
+    throw error;
+  }
+  return data;
+}
+
+function invalidateCacheByPrefix(prefixPath) {
+  const prefixUrl = `${BASE_URL}${prefixPath}`;
+  for (const key of Array.from(cache.keys())) {
+    if (key.startsWith(prefixUrl)) {
+      cache.delete(key);
+    }
+  }
+}
+
 export async function getAllParentCategories() {
   // Expecting format: { code: 0, result: [{id, name, description, series}, ...] }
   const data = await httpGet('/categories');
@@ -29,21 +58,19 @@ export async function getAllSeries(categorySlug) {
   // Backend may accept optional category filter; if not, client groups later
   const qs = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : '';
   const data = await httpGet(`/series${qs}`);
-  // Normalize to array of groups: [{title, items:[{name,slug}]}]
-  const list = Array.isArray(data) ? data : data?.data || [];
-  if (list.length === 0) return [];
-
-  // If server already groups, passthrough
-  if (list[0]?.items || list[0]?.children) return list;
-
-  // Otherwise group by `group` or `series` field
-  const byGroup = {};
-  for (const item of list) {
-    const groupName = item.group || item.series || 'Khác';
-    if (!byGroup[groupName]) byGroup[groupName] = [];
-    byGroup[groupName].push({ id: item.id, slug: item.slug, name: item.name });
+  // Normalize common response shapes
+  // Expected: { code: 0, result: [...] } or direct array
+  let list = [];
+  if (data && data.code === 0 && Array.isArray(data.result)) {
+    list = data.result;
+  } else if (Array.isArray(data)) {
+    list = data;
+  } else if (Array.isArray(data?.data)) {
+    list = data.data;
   }
-  return Object.entries(byGroup).map(([title, items]) => ({ title, items }));
+  if (list.length === 0) return [];
+  // Return flat list for admin usage
+  return list;
 }
 
 export async function getCategoryById(categoryId) {
@@ -62,5 +89,34 @@ export async function getSeriesByCategoryId(categoryId) {
   // Get series for a specific category
   const category = await getCategoryById(categoryId);
   return category ? category.series || [] : [];
+}
+
+export async function updateSeries(id, payload) {
+  // Normalize payload fields
+  const body = {
+    name: payload?.name,
+    description: payload?.description || '',
+    categoryId: payload?.categoryId ? parseInt(payload.categoryId) : undefined,
+  };
+  const res = await httpWithBody(`/series/${id}`, 'PUT', body);
+  invalidateCacheByPrefix('/series');
+  return res;
+}
+
+export async function deleteSeries(id) {
+  const res = await httpWithBody(`/series/${id}`, 'DELETE');
+  invalidateCacheByPrefix('/series');
+  return res;
+}
+
+export async function createSeries(payload) {
+  const body = {
+    name: payload?.name,
+    description: payload?.description || '',
+    categoryId: payload?.categoryId ? parseInt(payload.categoryId) : undefined,
+  };
+  const res = await httpWithBody(`/series`, 'POST', body);
+  invalidateCacheByPrefix('/series');
+  return res;
 }
 

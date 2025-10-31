@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getAllSeries, getAllParentCategories, updateSeries, deleteSeries, createSeries } from "../../../utils/api/categoryApi";
 import "./SubCategoriesSection.css";
 
 function SubCategoriesSection() {
@@ -7,72 +8,54 @@ function SubCategoriesSection() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-
-  // Dữ liệu mẫu
-  const sampleData = [
-    {
-      id: 1,
-      name: "Iphone 14 series",
-      description: "Đang cập nhật thông tin",
-      categoryId: 1,
-    },
-    {
-      id: 3,
-      name: "Iphone 13 series",
-      description:
-        "Được ra mắt thị trường năm 2021 và dần trở nên thịnh hành với nhiều tính năng mạnh mẽ",
-      categoryId: 1,
-    },
-    {
-      id: 4,
-      name: "Iphone 12 series",
-      description:
-        "Được ra mắt thị trường năm 2020 và dần trở nên thịnh hành với nhiều tính năng mạnh mẽ",
-      categoryId: 1,
-    },
-    {
-      id: 7,
-      name: "Iphone 11 series",
-      description:
-        "Được ra mắt thị trường năm 2019 và dần trở nên thịnh hành với nhiều tính năng mạnh mẽ",
-      categoryId: 1,
-    },
-  ];
-
-  const categories = [
-    { id: 1, name: "Điện thoại" },
-    { id: 2, name: "Máy tính bảng" },
-    { id: 3, name: "Phụ kiện" },
-  ];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
 
   useEffect(() => {
-    setSubCategories(sampleData);
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      try {
+        const [seriesList, parentCats] = await Promise.all([
+          getAllSeries(),
+          getAllParentCategories(),
+        ]);
+        if (!mounted) return;
+        setSubCategories(Array.isArray(seriesList) ? seriesList : []);
+        setCategories(Array.isArray(parentCats) ? parentCats : []);
+      } catch (_e) {
+        if (!mounted) return;
+        setSubCategories([]);
+        setCategories([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.categoryId)
       return alert("Vui lòng nhập đầy đủ thông tin.");
 
-    if (editingId) {
-      setSubCategories((prev) =>
-        prev.map((s) =>
-          s.id === editingId ? { ...s, ...form, categoryId: parseInt(form.categoryId) } : s
-        )
-      );
-    } else {
-      const newSub = {
-        id: Date.now(),
-        name: form.name,
-        description: form.description,
-        categoryId: parseInt(form.categoryId),
-      };
-      setSubCategories((prev) => [...prev, newSub]);
+    try {
+      if (editingId) {
+        await updateSeries(editingId, form);
+      } else {
+        if (!isAdmin) return alert("Bạn không có quyền thêm mới.");
+        await createSeries(form);
+      }
+      const [seriesList] = await Promise.all([getAllSeries()]);
+      setSubCategories(Array.isArray(seriesList) ? seriesList : []);
+      setForm({ name: "", description: "", categoryId: "" });
+      setEditingId(null);
+      setShowForm(false);
+    } catch (err) {
+      alert(err?.message || "Lưu thất bại");
     }
-
-    setForm({ name: "", description: "", categoryId: "" });
-    setEditingId(null);
-    setShowForm(false);
   };
 
   const handleEdit = (s) => {
@@ -85,9 +68,15 @@ function SubCategoriesSection() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa danh mục con này?")) {
-      setSubCategories((prev) => prev.filter((s) => s.id !== id));
+  const handleDelete = async (id) => {
+    if (!isAdmin) return alert("Bạn không có quyền xóa.");
+    if (!window.confirm("Bạn có chắc muốn xóa danh mục con này?")) return;
+    try {
+      await deleteSeries(id);
+      const [seriesList] = await Promise.all([getAllSeries()]);
+      setSubCategories(Array.isArray(seriesList) ? seriesList : []);
+    } catch (err) {
+      alert(err?.message || "Xóa thất bại");
     }
   };
 
@@ -105,6 +94,7 @@ function SubCategoriesSection() {
         <button
           className="btn add"
           onClick={() => {
+            if (!isAdmin) return alert("Bạn không có quyền thêm mới.");
             setShowForm(!showForm);
             setForm({ name: "", description: "", categoryId: "" });
             setEditingId(null);
@@ -133,7 +123,13 @@ function SubCategoriesSection() {
           </tr>
         </thead>
         <tbody>
-          {filtered.length > 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan="5" style={{ textAlign: "center", color: "#6b7280" }}>
+                Đang tải...
+              </td>
+            </tr>
+          ) : filtered.length > 0 ? (
             filtered.map((s, idx) => (
               <tr key={s.id}>
                 <td>{idx + 1}</td>
@@ -141,12 +137,13 @@ function SubCategoriesSection() {
                 <td>{s.description || "-"}</td>
                 <td>{getCategoryName(s.categoryId)}</td>
                 <td>
-                  <button className="btn edit" onClick={() => handleEdit(s)}>
+                  <button className="btn edit" onClick={() => handleEdit(s)} disabled={!isAdmin}>
                     ✏️ Sửa
                   </button>
                   <button
                     className="btn delete"
                     onClick={() => handleDelete(s.id)}
+                    disabled={!isAdmin}
                   >
                     🗑️ Xóa
                   </button>
