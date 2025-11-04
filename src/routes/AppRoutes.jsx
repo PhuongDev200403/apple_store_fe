@@ -14,6 +14,8 @@ const CategoryPage = lazy(() => import('../shared/pages/category/CategoryPage.js
 const LoginPage = lazy(() => import('../shared/pages/auth/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('../shared/pages/auth/RegisterPage.jsx'));
 const AdminPage = lazy(() => import('../shared/pages/admin/AdminPage.jsx'));
+const ProductPage = lazy(() => import('../shared/pages/product/ProductPage.jsx'));
+const ProductDetailPage = lazy(() => import('../shared/pages/productDetail/ProductDetail.jsx'));
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +35,10 @@ export const router = createBrowserRouter([
       { path: 'gio-hang', element: <CartPage /> },
       { path: 'danh-muc/:categoryId', element: <CategoryPage /> },
       { path: 'danh-muc/:categoryId/series/:seriesId', element: <CategoryPage /> },
+      // Product listing (shared) and product details
+      { path: 'san-pham', element: <ProductPage /> },
+      { path: 'san-pham/:category', element: <ProductPage /> },
+      { path: 'san-pham/:category/:productId', element: <ProductDetailPage /> },
     ],
   },
 ]);
