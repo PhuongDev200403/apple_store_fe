@@ -6,6 +6,9 @@ import ProductsSection from "./productSection/ProductsSection";
 import SubCategoriesSection from "./subCategoriesSection/SubCategoriesSection";
 import VariantsSection from "./variantsSection/VariantsSection";
 import ReportsSection from "./reportsSection/ReportsSection";
+import OrdersSection from "./ordersSection/OrdersSection";
+import WishlistSection from "./wishlistSection/WishlistSection";
+import CartSection from "./cartSection/CartSection";
 
 // const SubCategoriesSection = () => (
 //   <div>
@@ -28,26 +31,7 @@ import ReportsSection from "./reportsSection/ReportsSection";
 //   </div>
 // );
 
-const OrdersSection = () => (
-  <div>
-    <h3>📦 Quản lý đơn hàng</h3>
-    <p>Chức năng quản lý đơn hàng sẽ được phát triển tại đây.</p>
-  </div>
-);
-
-const WishlistSection = () => (
-  <div>
-    <h3>❤️ Quản lý danh sách yêu thích</h3>
-    <p>Chức năng quản lý danh sách yêu thích sẽ được phát triển tại đây.</p>
-  </div>
-);
-
-const CartSection = () => (
-  <div>
-    <h3>🛍️ Quản lý giỏ hàng</h3>
-    <p>Chức năng quản lý giỏ hàng sẽ được phát triển tại đây.</p>
-  </div>
-);
+// OrdersSection, WishlistSection moved to dedicated components
 
 // ReportsSection moved to dedicated component
 

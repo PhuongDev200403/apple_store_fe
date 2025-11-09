@@ -1,0 +1,78 @@
+.orders-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.orders-header .toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.orders-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orders-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 140px 180px 180px 160px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.orders-row--head {
+  font-weight: 600;
+  background: #f8f9fa;
+}
+
+.orders-group + .orders-group { margin-top: 6px; }
+
+.orders-details {
+  margin: 6px 0 12px 0;
+  padding: 12px;
+  border: 1px dashed #ddd;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.details-title { font-weight: 600; margin-bottom: 6px; }
+
+.items { display: flex; flex-direction: column; gap: 6px; }
+.items-head, .items-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 140px 160px;
+  gap: 8px;
+  align-items: center;
+}
+.items-head { font-weight: 600; }
+
+.summary { text-align: right; margin-top: 8px; }
+
+.error { color: #b00020; }
+.empty { color: #666; padding: 12px; text-align: center; }
+
+@media (max-width: 960px) {
+  .orders-row { grid-template-columns: 80px 1fr 120px 160px 160px 120px; }
+  .details-grid { grid-template-columns: 1fr; }
+}
+
+
