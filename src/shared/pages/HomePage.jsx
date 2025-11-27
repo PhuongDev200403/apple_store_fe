@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaTruck, FaGift, FaPhone, FaAward, FaShoppingCart, FaHeart, FaEye, FaSyncAlt, FaCog } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaChevronLeft, FaChevronRight, FaTruck, FaGift, FaPhone, FaAward, FaShoppingCart, FaHeart, FaEye } from 'react-icons/fa';
 import { getAllParentCategories } from '../utils/api/categoryApi';
+import { getAllVariants } from '../utils/api/variantApi';
+import { addToCart } from '../utils/api/cartApi';
+import { addToWishlist } from '../utils/api/wishlistApi';
 import './HomePage.css';
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [processingProductId, setProcessingProductId] = useState(null);
 
-  // Slider data
   const sliderData = [
     {
       id: 1,
@@ -36,7 +42,6 @@ export default function HomePage() {
     }
   ];
 
-  // Features data
   const featuresData = [
     {
       id: 1,
@@ -64,73 +69,23 @@ export default function HomePage() {
     }
   ];
 
-  // Sample products data (in real app, this would come from API)
-  const sampleProducts = [
-    { id: 1, name: "iPhone 15 Pro Max 256GB - Chính hãng VN/A", price: "32.990.000", originalPrice: "39.990.000", discount: "18%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop" },
-    { id: 2, name: "iPhone 15 Pro 128GB - Chính hãng VN/A", price: "28.990.000", originalPrice: "34.990.000", discount: "17%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop" },
-    { id: 3, name: "iPhone 15 128GB - Chính hãng VN/A", price: "24.990.000", originalPrice: "29.990.000", discount: "17%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop" },
-    { id: 4, name: "iPhone 14 Pro Max 256GB - Chính hãng VN/A", price: "29.990.000", originalPrice: "35.990.000", discount: "17%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop" },
-    { id: 5, name: "iPhone 14 Pro 128GB - Chính hãng VN/A", price: "25.990.000", originalPrice: "30.990.000", discount: "16%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop" },
-    { id: 6, name: "iPhone 14 Plus 128GB - Chính hãng VN/A", price: "21.490.000", originalPrice: "27.990.000", discount: "23%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop" },
-    { id: 7, name: "iPhone 13 Pro Max 256GB - Chính hãng VN/A", price: "26.990.000", originalPrice: "32.990.000", discount: "18%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop" },
-    { id: 8, name: "iPhone 13 Pro 128GB - Chính hãng VN/A", price: "22.990.000", originalPrice: "27.990.000", discount: "18%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop" },
-    { id: 9, name: "iPhone 13 128GB - Chính hãng VN/A", price: "18.990.000", originalPrice: "22.990.000", discount: "17%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop" },
-    { id: 10, name: "iPhone 12 Pro Max 256GB - Chính hãng VN/A", price: "23.990.000", originalPrice: "28.990.000", discount: "17%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop" },
-    { id: 11, name: "iPhone 12 Pro 128GB - Chính hãng VN/A", price: "19.990.000", originalPrice: "24.990.000", discount: "20%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop" },
-    { id: 12, name: "iPhone 12 128GB - Chính hãng VN/A", price: "15.990.000", originalPrice: "19.990.000", discount: "20%", warranty: "BH 24 tháng", image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&h=300&fit=crop" }
-  ];
-
-  // Category display order (can be configured)
-  const categoryDisplayOrder = [1, 3, 2, 4]; // iPhone, Macbook, iPad, Apple Watch
-
-  // News data
-  const newsData = [
-    {
-      id: 1,
-      title: "iPhone 15 Pro Max chính thức ra mắt với nhiều tính năng mới",
-      excerpt: "Apple vừa chính thức ra mắt iPhone 15 Pro Max với chip A17 Pro mạnh mẽ và camera 48MP...",
-      image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=250&fit=crop&q=80",
-      date: "15/10/2024",
-      category: "iPhone"
-    },
-    {
-      id: 2,
-      title: "MacBook Pro M3: Hiệu năng vượt trội cho công việc chuyên nghiệp",
-      excerpt: "MacBook Pro M3 mang đến hiệu năng đỉnh cao với chip M3 mới nhất từ Apple...",
-      image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=250&fit=crop&q=80",
-      date: "12/10/2024",
-      category: "MacBook"
-    },
-    {
-      id: 3,
-      title: "iPad Air 2024: Thiết kế mỏng nhẹ, hiệu năng mạnh mẽ",
-      excerpt: "iPad Air 2024 với thiết kế mỏng nhẹ và chip M1 mạnh mẽ, phù hợp cho mọi nhu cầu...",
-      image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=250&fit=crop&q=80",
-      date: "10/10/2024",
-      category: "iPad"
-    },
-    {
-      id: 4,
-      title: "Apple Watch Series 9: Theo dõi sức khỏe thông minh hơn",
-      excerpt: "Apple Watch Series 9 với nhiều tính năng theo dõi sức khỏe mới và thiết kế đẹp mắt...",
-      image: "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=250&fit=crop&q=80",
-      date: "08/10/2024",
-      category: "Apple Watch"
-    }
-  ];
-
   useEffect(() => {
-    getAllParentCategories()
-      .then((data) => {
-        setCategories(Array.isArray(data) ? data : []);
+    Promise.all([
+      getAllParentCategories(),
+      getAllVariants()
+    ])
+      .then(([categoriesData, variantsData]) => {
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        setProducts(Array.isArray(variantsData) ? variantsData.filter(v => v.status === 'ACTIVE') : []);
       })
       .catch((error) => {
-        console.error('Error fetching categories:', error);
-        setCategories([]);
+        console.error('Error fetching data:', error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, []);
 
-  // Auto slide
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % sliderData.length);
@@ -138,17 +93,9 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % sliderData.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + sliderData.length) % sliderData.length);
-  };
-
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
-  };
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % sliderData.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + sliderData.length) % sliderData.length);
+  const goToSlide = (index) => setCurrentSlide(index);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -157,8 +104,116 @@ export default function HomePage() {
     }).format(price);
   };
 
-  const getCategoryById = (id) => {
-    return categories.find(cat => cat.id === id);
+  const getProductsByCategory = (categoryId) => {
+    return products.filter(p => p.productId === categoryId).slice(0, 8);
+  };
+
+  // Fake products for other categories (temporary until API is ready)
+  const checkAuth = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Vui lòng đăng nhập để thực hiện chức năng này');
+      navigate('/dang-nhap');
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddToCart = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!checkAuth()) return;
+    
+    if (product.status !== 'ACTIVE' || product.quantity === 0) {
+      alert('Sản phẩm hiện không khả dụng');
+      return;
+    }
+
+    try {
+      setProcessingProductId(product.id);
+      console.log('Adding product to cart:', product);
+      console.log('Product ID:', product.id);
+      console.log('Product name:', product.slug);
+      await addToCart(product.id, 1);
+      alert(`Đã thêm "${product.slug?.replace(/-/g, ' ')}" vào giỏ hàng!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert(error.response?.data?.message || 'Không thể thêm vào giỏ hàng');
+    } finally {
+      setProcessingProductId(null);
+    }
+  };
+
+  const handleAddToWishlist = async (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!checkAuth()) return;
+
+    try {
+      setProcessingProductId(product.id);
+      console.log('Adding product to wishlist:', product);
+      console.log('Product ID:', product.id);
+      console.log('Product name:', product.slug);
+      await addToWishlist(product.id);
+      alert(`Đã thêm "${product.slug?.replace(/-/g, ' ')}" vào danh sách yêu thích!`);
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+      alert(error.response?.data?.message || 'Không thể thêm vào danh sách yêu thích');
+    } finally {
+      setProcessingProductId(null);
+    }
+  };
+
+  const getFakeProducts = (categoryId, categoryName) => {
+    const fakeProducts = [
+      {
+        id: `fake-${categoryId}-1`,
+        imageUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop",
+        slug: `${categoryName.toLowerCase()}-pro-11-inch-256gb`,
+        memory: "256",
+        color: "silver",
+        price: 25000000,
+        quantity: 15,
+        status: "ACTIVE",
+        productId: categoryId
+      },
+      {
+        id: `fake-${categoryId}-2`,
+        imageUrl: "https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&h=400&fit=crop",
+        slug: `${categoryName.toLowerCase()}-air-10-9-inch-128gb`,
+        memory: "128",
+        color: "space-gray",
+        price: 18000000,
+        quantity: 20,
+        status: "ACTIVE",
+        productId: categoryId
+      },
+      {
+        id: `fake-${categoryId}-3`,
+        imageUrl: "https://images.unsplash.com/photo-1585790050230-5dd28404f1e4?w=400&h=400&fit=crop",
+        slug: `${categoryName.toLowerCase()}-mini-8-3-inch-256gb`,
+        memory: "256",
+        color: "pink",
+        price: 16000000,
+        quantity: 12,
+        status: "ACTIVE",
+        productId: categoryId
+      },
+      {
+        id: `fake-${categoryId}-4`,
+        imageUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop",
+        slug: `${categoryName.toLowerCase()}-pro-12-9-inch-512gb`,
+        memory: "512",
+        color: "gold",
+        price: 35000000,
+        quantity: 8,
+        status: "ACTIVE",
+        productId: categoryId
+      }
+    ];
+    return fakeProducts;
   };
 
   return (
@@ -187,7 +242,6 @@ export default function HomePage() {
             </div>
           ))}
           
-          {/* Slider Controls */}
           <button className="slider-btn prev" onClick={prevSlide}>
             <FaChevronLeft />
           </button>
@@ -195,7 +249,6 @@ export default function HomePage() {
             <FaChevronRight />
           </button>
           
-          {/* Slider Indicators */}
           <div className="slider-indicators">
             {sliderData.map((_, index) => (
               <button
@@ -214,9 +267,7 @@ export default function HomePage() {
           <div className="features-grid">
             {featuresData.map((feature) => (
               <div key={feature.id} className="feature-card">
-                <div className="feature-icon">
-                  {feature.icon}
-                </div>
+                <div className="feature-icon">{feature.icon}</div>
                 <h3 className="feature-title">{feature.title}</h3>
                 <p className="feature-description">{feature.description}</p>
               </div>
@@ -226,93 +277,92 @@ export default function HomePage() {
       </section>
 
       {/* Product Categories */}
-      {categoryDisplayOrder.map((categoryId) => {
-        const category = getCategoryById(categoryId);
-        if (!category) return null;
-
-        return (
-          <section key={category.id} className="product-section">
-            <div className="container">
-              <div className="section-header">
-                <h2 className="section-title">{category.name}</h2>
-                <Link to={`/danh-muc/${category.id}`} className="view-all-btn">
-                  Xem tất cả
-                </Link>
-              </div>
-              
-              <div className="products-grid">
-                {sampleProducts.slice(0, 4).map((product) => (
-                  <div key={product.id} className="product-card">
-                    <div className="product-image">
-                      <img src={product.image} alt={product.name} />
-                      <div className="discount-badge">Giảm {product.discount}</div>
-                      <div className="product-actions">
-                        <button className="action-btn">
-                          <FaEye />
-                        </button>
-                        <button className="action-btn">
-                          <FaHeart />
-                        </button>
-                        <button className="action-btn">
-                          <FaSyncAlt />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="product-info">
-                      <div className="warranty-badge">{product.warranty}</div>
-                      <h3 className="product-name">{product.name}</h3>
-                      <div className="price-section">
-                        <span className="original-price">{formatPrice(product.originalPrice)}</span>
-                        <span className="current-price">{formatPrice(product.price)}</span>
-                      </div>
-                      <div className="promo-text">
-                        Giảm 250.000đ khi mua kèm gói bảo hành VIP 12 tháng 1 Đổi 1
-                      </div>
-                      <button className="add-to-cart-btn">
-                        <FaCog />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        );
-      })}
-
-      {/* News Section */}
-      <section className="news-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Tin tức công nghệ</h2>
-            <Link to="/tin-tuc" className="view-all-btn">
-              Xem tất cả
-            </Link>
-          </div>
-          
-          <div className="news-grid">
-            {newsData.map((news) => (
-              <article key={news.id} className="news-card">
-                <div className="news-image">
-                  <img src={news.image} alt={news.title} />
-                  <div className="news-category">{news.category}</div>
-                </div>
-                <div className="news-content">
-                  <h3 className="news-title">{news.title}</h3>
-                  <p className="news-excerpt">{news.excerpt}</p>
-                  <div className="news-meta">
-                    <span className="news-date">{news.date}</span>
-                    <Link to={`/tin-tuc/${news.id}`} className="read-more">
-                      Đọc tiếp
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+      {loading ? (
+        <div className="loading-section">
+          <div className="spinner"></div>
+          <p>Đang tải sản phẩm...</p>
         </div>
-      </section>
+      ) : (
+        categories.map((category) => {
+          let categoryProducts = getProductsByCategory(category.id);
+          
+          // If no real products, use fake data for demo
+          if (categoryProducts.length === 0) {
+            categoryProducts = getFakeProducts(category.id, category.name);
+          }
+
+          return (
+            <section key={category.id} className="product-section">
+              <div className="container">
+                <div className="section-header">
+                  <h2 className="section-title">{category.name}</h2>
+                  <Link to={`/danh-muc/${category.id}`} className="view-all-btn">
+                    Xem tất cả →
+                  </Link>
+                </div>
+                
+                <div className="products-grid">
+                  {categoryProducts.map((product) => (
+                    <Link 
+                      key={product.id} 
+                      to={`/san-pham/${category.id}/${product.id}`}
+                      state={{ variantId: product.id, productId: product.productId }}
+                      className="product-card"
+                    >
+                      <div className="product-image">
+                        <img src={product.imageUrl || '/default-product.jpg'} alt={product.slug} />
+                        {product.quantity < 10 && product.quantity > 0 && (
+                          <div className="stock-badge">Còn {product.quantity} sp</div>
+                        )}
+                        {product.quantity === 0 && (
+                          <div className="stock-badge out-of-stock">Hết hàng</div>
+                        )}
+                        <div className="product-overlay">
+                          <button 
+                            className="action-btn"
+                            onClick={(e) => handleAddToWishlist(e, product)}
+                            disabled={processingProductId === product.id}
+                            title="Thêm vào yêu thích"
+                          >
+                            <FaHeart /> Yêu thích
+                          </button>
+                        </div>
+                      </div>
+                      <div className="product-info">
+                        <h3 className="product-name">
+                          {product.slug?.replace(/-/g, ' ') || 'Sản phẩm'}
+                        </h3>
+                        <div className="product-specs">
+                          <span className="spec-badge">{product.memory}GB</span>
+                          <span className="spec-badge color-badge" style={{
+                            background: product.color || '#ccc'
+                          }}>{product.color}</span>
+                        </div>
+                        <div className="price-section">
+                          <span className="current-price">{formatPrice(product.price)}</span>
+                        </div>
+                        <button 
+                          className="add-to-cart-btn"
+                          onClick={(e) => handleAddToCart(e, product)}
+                          disabled={processingProductId === product.id || product.quantity === 0}
+                        >
+                          {processingProductId === product.id ? (
+                            <>Đang thêm...</>
+                          ) : (
+                            <>
+                              <FaShoppingCart /> Thêm vào giỏ
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        })
+      )}
     </div>
   );
 }
-

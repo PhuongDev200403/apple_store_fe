@@ -91,3 +91,24 @@ button { font-family: inherit; }
 @media (max-width: 480px) {
   .container { padding-left: 12px; padding-right: 12px; }
 }
+
+/* Print Styles - Ẩn Header và Footer khi in */
+@media print {
+  header,
+  footer,
+  .modern-header,
+  .site-footer,
+  .breadcrumbs {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

@@ -67,6 +67,9 @@ export default function LoginPage() {
         const isAdmin = roleStr.includes('admin');
         localStorage.setItem('role', isAdmin ? 'admin' : 'user');
 
+        // Dispatch event để Header cập nhật trạng thái đăng nhập
+        window.dispatchEvent(new Event('loginStatusChanged'));
+
         // Điều hướng theo role
         navigate(isAdmin ? '/admin' : '/');
       } else if (res?.message) {

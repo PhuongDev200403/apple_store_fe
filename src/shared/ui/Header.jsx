@@ -1,22 +1,37 @@
 import { useEffect, useState } from 'react';
-import { FaBars, FaUser, FaShoppingCart, FaSearch, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaBars, FaUser, FaShoppingCart, FaSearch, FaHeart, FaSignInAlt, FaSignOutAlt, FaShoppingBag } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { getAllParentCategories } from '../utils/api/categoryApi';
+import { getProductsBySeries } from '../utils/api/productApi';
 import './header.css';
 
+// Helper function to create slug
+const createProductSlug = (name, id) => {
+  const slug = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+  return `${slug}-${id}`;
+};
 
 export default function Header() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [seriesProducts, setSeriesProducts] = useState({});
+  const [activeMobileCategory, setActiveMobileCategory] = useState(null);
+  const [activeMobileSeries, setActiveMobileSeries] = useState(null);
 
   useEffect(() => {
     getAllParentCategories()
       .then((data) => {
-        // Đảm bảo data luôn là array
         setCategories(Array.isArray(data) ? data : []);
       })
       .catch((error) => {
@@ -25,165 +40,510 @@ export default function Header() {
       });
   }, []);
 
-  // Đóng menu tài khoản khi click ra ngoài
+  // Lắng nghe sự thay đổi của localStorage (đăng nhập/đăng xuất)
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isAccountOpen && !event.target.closest('.account')) {
-        setIsAccountOpen(false);
-      }
+    const checkLoginStatus = () => {
+      setIsLoggedIn(!!localStorage.getItem('token'));
     };
 
-    document.addEventListener('click', handleClickOutside);
+    // Kiểm tra khi component mount
+    checkLoginStatus();
+
+    // Lắng nghe sự kiện storage (khi localStorage thay đổi từ tab khác)
+    window.addEventListener('storage', checkLoginStatus);
+
+    // Lắng nghe custom event (khi localStorage thay đổi từ cùng tab)
+    window.addEventListener('loginStatusChanged', checkLoginStatus);
+
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('storage', checkLoginStatus);
+      window.removeEventListener('loginStatusChanged', checkLoginStatus);
     };
-  }, [isAccountOpen]);
+  }, []);
 
-  // categories state is populated from API
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileDrawerOpen]);
 
   const handleLogout = () => {
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
       setIsLoggedIn(false);
-      setIsAccountOpen(false);
+      setIsMobileDrawerOpen(false);
+      // Dispatch event để các component khác biết đã đăng xuất
+      window.dispatchEvent(new Event('loginStatusChanged'));
       navigate('/dang-nhap');
     } catch (_e) {
       // no-op
     }
   };
 
+  const handleLogin = () => {
+    setIsMobileDrawerOpen(false);
+    navigate('/dang-nhap');
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/tim-kiem?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleCategoryHover = async (category) => {
+    if (!category.series || category.series.length === 0) return;
+    
+    // Fetch products for each series if not already loaded
+    for (const series of category.series) {
+      if (!seriesProducts[series.id]) {
+        try {
+          const products = await getProductsBySeries(series.id);
+          setSeriesProducts(prev => ({
+            ...prev,
+            [series.id]: products
+          }));
+        } catch (error) {
+          console.error(`Error fetching products for series ${series.id}:`, error);
+        }
+      }
+    }
+  };
+
+  const handleMobileCategoryClick = async (category) => {
+    if (activeMobileCategory === category.id) {
+      setActiveMobileCategory(null);
+      setActiveMobileSeries(null);
+    } else {
+      setActiveMobileCategory(category.id);
+      setActiveMobileSeries(null);
+      
+      // Fetch products for all series in this category
+      if (category.series && category.series.length > 0) {
+        for (const series of category.series) {
+          if (!seriesProducts[series.id]) {
+            try {
+              const products = await getProductsBySeries(series.id);
+              setSeriesProducts(prev => ({
+                ...prev,
+                [series.id]: products
+              }));
+            } catch (error) {
+              console.error(`Error fetching products for series ${series.id}:`, error);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const handleMobileSeriesClick = (seriesId) => {
+    if (activeMobileSeries === seriesId) {
+      setActiveMobileSeries(null);
+    } else {
+      setActiveMobileSeries(seriesId);
+    }
+  };
+
   return (
-    <header className="header">
-      {/* Block 1: top bar */}
-      <div className="header-top container">
-        <button className="icon-btn menu-btn" onClick={()=>setIsMobileNavOpen(true)} aria-label="Mở menu"><FaBars /></button>
-        <Link to="/" className="logo">Sudes Phone</Link>
+    <header className="modern-header">
+      {/* Phần trên: Logo, Tìm kiếm, Actions */}
+      <div className="header-top">
+        <div className="container">
+          {/* Mobile Toggle */}
+          <button 
+            className="mobile-toggle"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            aria-label="Mở menu"
+          >
+            <FaBars />
+          </button>
 
-        <div className="search-box">
-          <input type="text" placeholder="Tìm sản phẩm..." />
-          <button aria-label="Tìm kiếm"><FaSearch /></button>
-        </div>
+          {/* Logo */}
+          <Link to="/" className="site-logo">
+            <h1>Sudes Phone</h1>
+          </Link>
 
-        <div className="store-info">
-          <FaMapMarkerAlt />
-          <div className="store-info-text">
-            <span className="store-info-text-title">Hệ thống cửa hàng</span>
-            <span className="quantity">1</span>
-          </div>
-        </div>
-
-        <div className="contact-info">
-          <FaPhone />
-          <div className="contact-info-text">
-            <span className="contact-info-text-title">Gọi mua hàng</span>
-            <span className="phone">0327391502</span>
-          </div>
-        </div>
-
-        <div className="account" onClick={() => setIsAccountOpen(!isAccountOpen)}>
-          <FaUser />
-          <div className="account-text">
-            <span className="account-text-title">Thông tin</span>
-            <span className="account-text-value">Tài khoản</span>
-          </div>
-          {isAccountOpen && (
-            <div className="account-menu">
-              {!isLoggedIn && (
-                <>
-                  <Link to="/dang-nhap" onClick={() => setIsAccountOpen(false)}>Đăng nhập</Link>
-                  <Link to="/dang-ky" onClick={() => setIsAccountOpen(false)}>Đăng ký</Link>
-                </>
-              )}
-              <Link to="/wishlist" onClick={() => setIsAccountOpen(false)}>Sản phẩm yêu thích</Link>
-              {isLoggedIn && (
-                <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
-              )}
+          {/* Search Form */}
+          <form className="search-form" onSubmit={handleSearch}>
+            <div className="search-wrapper">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Tìm kiếm sản phẩm, thương hiệu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="submit" className="search-submit">
+                <FaSearch /> Tìm kiếm
+              </button>
             </div>
-          )}
-        </div>
+          </form>
 
-        <Link to="/gio-hang" className="cart">
-          <FaShoppingCart />
-          <span className="cart-badge">2</span>
-        </Link>
+          {/* Header Actions */}
+          <div className="header-actions">
+            {/* Đăng nhập */}
+            {!isLoggedIn && (
+              <button className="header-btn btn-login" onClick={handleLogin}>
+                <FaSignInAlt />
+                <span>Đăng nhập</span>
+              </button>
+            )}
+
+            {/* Đăng ký */}
+            {!isLoggedIn && (
+              <Link to="/dang-ky" className="header-btn btn-register">
+                <FaUser />
+                <span>Đăng ký</span>
+              </Link>
+            )}
+
+            {/* Đăng xuất */}
+            {isLoggedIn && (
+              <button className="header-btn btn-logout" onClick={handleLogout}>
+                <FaSignOutAlt />
+                <span>Đăng xuất</span>
+              </button>
+            )}
+
+            {/* Đơn hàng */}
+            {isLoggedIn && (
+              <Link to="/don-hang" className="header-btn btn-orders">
+                <FaShoppingBag />
+                <span>Đơn hàng</span>
+              </Link>
+            )}
+
+            {/* Tài khoản */}
+            {isLoggedIn && (
+              <Link to="/tai-khoan" className="header-btn btn-account">
+                <FaUser />
+                <span>Tài khoản</span>
+              </Link>
+            )}
+
+            {/* Danh sách yêu thích */}
+            <Link to="/wishlist" className="header-btn btn-wishlist">
+              <FaHeart />
+              <span>Yêu thích</span>
+            </Link>
+
+            {/* Giỏ hàng */}
+            <Link to="/gio-hang" className="header-btn btn-cart">
+              <FaShoppingCart />
+              <span>Giỏ hàng</span>
+              <span className="cart-badge">2</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* Block 2: navigation */}
-      <nav className="header-nav container">
-        <NavLink to="/">Trang chủ</NavLink>
-        <NavLink to="/gioi-thieu">Giới thiệu</NavLink>
-        {Array.isArray(categories) && categories.map((cat) => (
-          <div 
-            key={cat.id} 
-            className="category-item"
-            onMouseEnter={() => setHoveredCategory(cat.id)}
-            onMouseLeave={() => setHoveredCategory(null)}
-          >
-            <NavLink to={`/danh-muc/${cat.id}`}>{cat.name}</NavLink>
-            {cat.series && cat.series.length > 0 && hoveredCategory === cat.id && (
-              <div 
-                className="category-dropdown"
-                onMouseEnter={() => setHoveredCategory(cat.id)}
-                onMouseLeave={() => setHoveredCategory(null)}
+      {/* Phần dưới: Navigation Menu */}
+      <nav className="header-nav">
+        <div className="container">
+          <ul className="nav-list">
+            <li className="nav-item">
+              <NavLink to="/" className="nav-link">
+                Trang chủ
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/gioi-thieu" className="nav-link">
+                Giới thiệu
+              </NavLink>
+            </li>
+
+            {/* Categories from API */}
+            {Array.isArray(categories) && categories.map((cat) => (
+              <li 
+                key={cat.id} 
+                className={`nav-item ${cat.series && cat.series.length > 0 ? 'has-dropdown' : ''}`}
+                onMouseEnter={() => handleCategoryHover(cat)}
               >
-                {cat.series.map((series) => (
-                  <Link 
-                    key={series.id} 
-                    to={`/danh-muc/${cat.id}/series/${series.id}`}
-                    className="series-link"
-                  >
-                    {series.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-        <div className="spacer" />
-        <NavLink to="/chinh-sach">Chính sách</NavLink>
-        <NavLink to="/tin-tuc">Tin tức</NavLink>
+                <NavLink to={`/danh-muc/${cat.id}`} className="nav-link">
+                  {cat.name}
+                </NavLink>
+                
+                {/* Dropdown nếu có series */}
+                {cat.series && cat.series.length > 0 && (
+                  <div className="dropdown-mega-menu">
+                    <div className="mega-menu-container">
+                      {cat.series.map((series) => {
+                        const products = seriesProducts[series.id] || [];
+                        return (
+                          <div key={series.id} className="mega-menu-column">
+                            <Link
+                              to={`/danh-muc/${cat.id}/series/${series.id}`}
+                              className="mega-menu-title"
+                            >
+                              {series.name}
+                            </Link>
+                            {products.length > 0 && (
+                              <div className="mega-menu-items">
+                                {products.slice(0, 6).map((product) => {
+                                  const slug = createProductSlug(product.name, product.id);
+                                  return (
+                                    <Link
+                                      key={product.id}
+                                      to={`/product/${slug}/variants`}
+                                      className="mega-menu-item"
+                                    >
+                                      {product.name}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+
+            <li className="nav-spacer"></li>
+
+            <li className="nav-item">
+              <NavLink to="/chinh-sach" className="nav-link">
+                Chính sách
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink to="/tin-tuc" className="nav-link">
+                Tin tức
+              </NavLink>
+            </li>
+          </ul>
+        </div>
       </nav>
 
-      {/* Mobile drawer for navigation */}
-      {isMobileNavOpen && (
-        <>
-          <div className="drawer" role="dialog" aria-modal="true">
-            <div className="drawer-header">
-              <span>Menu</span>
-              <button className="icon-btn" onClick={()=>setIsMobileNavOpen(false)} aria-label="Đóng">✕</button>
-            </div>
-            <div className="drawer-content">
-              <Link to="/" onClick={()=>setIsMobileNavOpen(false)}>Trang chủ</Link>
-              <Link to="/gioi-thieu" onClick={()=>setIsMobileNavOpen(false)}>Giới thiệu</Link>
-              {Array.isArray(categories) && categories.map((cat) => (
-                <div key={cat.id} className="mobile-category-item">
-                  <Link to={`/danh-muc/${cat.id}`} onClick={()=>setIsMobileNavOpen(false)}>
-                    {cat.name}
-                  </Link>
-                  {cat.series && cat.series.length > 0 && (
-                    <div className="mobile-series-list">
-                      {cat.series.map((series) => (
-                        <Link 
-                          key={series.id} 
-                          to={`/danh-muc/${cat.id}/series/${series.id}`}
-                          onClick={()=>setIsMobileNavOpen(false)}
-                          className="mobile-series-link"
-                        >
-                          {series.name}
-                        </Link>
-                      ))}
+      {/* Mobile Drawer */}
+      <div className={`mobile-drawer ${isMobileDrawerOpen ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <span className="drawer-title">Menu</span>
+          <button
+            className="drawer-close"
+            onClick={() => setIsMobileDrawerOpen(false)}
+            aria-label="Đóng menu"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="drawer-body">
+          {/* Login/Register/Logout in mobile */}
+          <div className="drawer-section">
+            {!isLoggedIn ? (
+              <>
+                <button 
+                  className="drawer-link" 
+                  onClick={handleLogin}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    font: 'inherit'
+                  }}
+                >
+                  <FaSignInAlt style={{ marginRight: '8px' }} />
+                  Đăng nhập
+                </button>
+                <Link
+                  to="/dang-ky"
+                  className="drawer-link"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                >
+                  <FaUser style={{ marginRight: '8px' }} />
+                  Đăng ký
+                </Link>
+              </>
+            ) : (
+              <button 
+                className="drawer-link" 
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  font: 'inherit'
+                }}
+              >
+                <FaSignOutAlt style={{ marginRight: '8px' }} />
+                Đăng xuất
+              </button>
+            )}
+          </div>
+
+          {/* Main menu */}
+          <div className="drawer-section">
+            <Link
+              to="/"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              Trang chủ
+            </Link>
+            <Link
+              to="/gioi-thieu"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              Giới thiệu
+            </Link>
+          </div>
+
+          {/* Categories */}
+          {Array.isArray(categories) && categories.length > 0 && (
+            <div className="drawer-section">
+              <div className="drawer-section-title">Danh mục sản phẩm</div>
+              {categories.map((cat) => (
+                <div key={cat.id} className="drawer-category">
+                  <div className="drawer-category-header">
+                    <Link
+                      to={`/danh-muc/${cat.id}`}
+                      className="drawer-category-link"
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                    >
+                      {cat.name}
+                    </Link>
+                    {cat.series && cat.series.length > 0 && (
+                      <button
+                        className="drawer-category-toggle"
+                        onClick={() => handleMobileCategoryClick(cat)}
+                      >
+                        {activeMobileCategory === cat.id ? '−' : '+'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {cat.series && cat.series.length > 0 && activeMobileCategory === cat.id && (
+                    <div className="drawer-series">
+                      {cat.series.map((series) => {
+                        const products = seriesProducts[series.id] || [];
+                        return (
+                          <div key={series.id} className="drawer-series-item">
+                            <div className="drawer-series-header">
+                              <Link
+                                to={`/danh-muc/${cat.id}/series/${series.id}`}
+                                className="drawer-series-link"
+                                onClick={() => setIsMobileDrawerOpen(false)}
+                              >
+                                {series.name}
+                              </Link>
+                              {products.length > 0 && (
+                                <button
+                                  className="drawer-series-toggle"
+                                  onClick={() => handleMobileSeriesClick(series.id)}
+                                >
+                                  {activeMobileSeries === series.id ? '−' : '+'}
+                                </button>
+                              )}
+                            </div>
+                            
+                            {products.length > 0 && activeMobileSeries === series.id && (
+                              <div className="drawer-products">
+                                {products.map((product) => {
+                                  const slug = createProductSlug(product.name, product.id);
+                                  return (
+                                    <Link
+                                      key={product.id}
+                                      to={`/product/${slug}/variants`}
+                                      className="drawer-product-link"
+                                      onClick={() => setIsMobileDrawerOpen(false)}
+                                    >
+                                      {product.name}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               ))}
-              <Link to="/chinh-sach" onClick={()=>setIsMobileNavOpen(false)}>Chính sách</Link>
-              <Link to="/tin-tuc" onClick={()=>setIsMobileNavOpen(false)}>Tin tức</Link>
             </div>
+          )}
+
+          {/* Other links */}
+          <div className="drawer-section">
+            {isLoggedIn && (
+              <>
+                <Link
+                  to="/tai-khoan"
+                  className="drawer-link"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                >
+                  <FaUser style={{ marginRight: '8px', color: '#2563eb' }} />
+                  Tài khoản của tôi
+                </Link>
+                <Link
+                  to="/don-hang"
+                  className="drawer-link"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                >
+                  <FaShoppingBag style={{ marginRight: '8px', color: '#10b981' }} />
+                  Đơn hàng của tôi
+                </Link>
+              </>
+            )}
+            <Link
+              to="/wishlist"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              <FaHeart style={{ marginRight: '8px', color: '#ef4444' }} />
+              Danh sách yêu thích
+            </Link>
+            <Link
+              to="/gio-hang"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              <FaShoppingCart style={{ marginRight: '8px' }} />
+              Giỏ hàng (2)
+            </Link>
           </div>
-          <div className="drawer-backdrop" onClick={()=>setIsMobileNavOpen(false)} />
-        </>
-      )}
+
+          <div className="drawer-section">
+            <Link
+              to="/chinh-sach"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              Chính sách
+            </Link>
+            <Link
+              to="/tin-tuc"
+              className="drawer-link"
+              onClick={() => setIsMobileDrawerOpen(false)}
+            >
+              Tin tức
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay */}
+      <div
+        className={`drawer-overlay ${isMobileDrawerOpen ? 'open' : ''}`}
+        onClick={() => setIsMobileDrawerOpen(false)}
+      />
     </header>
   );
 }

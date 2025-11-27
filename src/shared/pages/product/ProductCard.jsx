@@ -1,11 +1,22 @@
+import { useNavigate } from 'react-router-dom';
+import { createProductUrl } from '../../utils/slugHelper';
 import "./ProductCard.css";
-const ProductCard = ({ product }) => {
+
+const ProductCard = ({ product, isVariant = false, categoryId }) => {
+    const navigate = useNavigate();
+    
     const formatPrice = (price) => {
       return price.toLocaleString("vi-VN") + "đ"
     }
+    
+    const handleCardClick = () => {
+      // Link to /san-pham/categoryId/variantId
+      const catId = categoryId || product.categoryId || product.seriesId || 1;
+      navigate(`/san-pham/${catId}/${product.id}`);
+    }
   
     return (
-      <div className="product-card">
+      <div className="product-card" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
         <div className="product-image-container">
           {product.discount > 0 && <div className="discount-badge">Giảm {product.discount}%</div>}
           <img src={product.image || "/placeholder.svg"} alt={product.name} className="product-image" />

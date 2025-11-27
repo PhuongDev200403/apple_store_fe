@@ -1,183 +1,262 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/shared/pages/admin/wishlistSection/WishlistSection.jsx
+import { useState, useEffect, useMemo } from "react";
+import { getAllWishlists, getWishlistByUserId } from "../../../utils/api/wishlistApi";
 import "./WishlistSection.css";
 
-function WishlistSection() {
-  const [list, setList] = useState([]);
+const formatDate = (dateStr) => {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+};
+
+const formatPrice = (price) => {
+  if (!price) return "—";
+  return Number(price).toLocaleString("vi-VN") + " đ";
+};
+
+export default function WishlistSection() {
+  const [wishlists, setWishlists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("");
-  const [detail, setDetail] = useState(null);
-  const [detailUserId, setDetailUserId] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedWishlist, setSelectedWishlist] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Hardcoded mock data
-  const MOCK_WISHLISTS = [
-    {
-      id: 1,
-      userId: 2,
-      createdAt: "2025-09-19T16:50:07.802418",
-      updatedAt: "2025-10-17T16:03:46.95758",
-      items: []
-    },
-    {
-      id: 2,
-      userId: 4,
-      createdAt: "2025-10-08T23:16:09.13048",
-      updatedAt: "2025-10-08T23:16:09.13048",
-      items: []
-    }
-  ];
+  useEffect(() => {
+    loadWishlists();
+  }, []);
 
-  const load = async () => {
+  const loadWishlists = async () => {
     setLoading(true);
     setError("");
     try {
-      // Use hardcoded data instead of API
-      setList(MOCK_WISHLISTS);
-    } catch (e) {
-      setError(e?.message || "Không tải được danh sách wishlist");
-      setList([]);
+      const data = await getAllWishlists();
+      setWishlists(Array.isArray(data) ? data : []);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        "Không thể tải danh sách wishlist.";
+      setError(msg);
+      if (err.response?.status === 403 || err.response?.status === 401) {
+        setError("Bạn không có quyền truy cập. Chỉ Admin được phép.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    (async () => { await load(); })();
-  }, []);
-
-  const filtered = useMemo(() => {
-    if (!filter) return list;
-    const f = filter.toLowerCase();
-    return list.filter(w =>
-      String(w?.id ?? "").includes(f) ||
-      String(w?.userId ?? "").includes(f)
-    );
-  }, [list, filter]);
-
-  const openDetailByUserId = async (userId) => {
-    if (!userId) return;
+  const loadWishlistDetail = async (userId) => {
     setLoadingDetail(true);
-    setDetail(null);
     try {
-      const found = MOCK_WISHLISTS.find(w => String(w.userId) === String(userId));
-      if (!found) {
-        setDetail({ error: "Không tìm thấy wishlist cho userId này" });
-      } else {
-        setDetail(found);
-      }
-      setDetailUserId(userId);
-    } catch (e) {
-      setDetail({ error: e?.message || "Không lấy được chi tiết" });
-      setDetailUserId(userId);
+      const data = await getWishlistByUserId(userId);
+      setSelectedWishlist(data); // data là object { id, userId, items: [...] }
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể tải chi tiết wishlist.");
     } finally {
       setLoadingDetail(false);
     }
   };
 
-  return (
-    <div className="wishlist-section">
-      <div className="wishlist-header">
-        <h3>❤️ Quản lý danh sách yêu thích</h3>
-        <div className="toolbar">
-          <input
-            placeholder="Lọc theo ID wishlist hoặc userId"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-          <button onClick={load} disabled={loading}>{loading ? "Đang tải..." : "Tải lại"}</button>
+  const filteredWishlists = useMemo(() => {
+    if (!search) return wishlists;
+    const s = search.toLowerCase();
+    return wishlists.filter(
+      (w) =>
+        String(w.id || "").includes(s) ||
+        String(w.userId || "").includes(s)
+    );
+  }, [wishlists, search]);
+
+  if (error.includes("quyền")) {
+    return (
+      <div className="wishlist-manager">
+        <div className="wishlist-container" style={{ padding: "3rem", textAlign: "center" }}>
+          <h3 style={{ color: "#991b1b" }}>Truy cập bị từ chối</h3>
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.href = "/login"}
+            className="btn btn-primary"
+            style={{ marginTop: "1rem" }}
+          >
+            Đăng nhập lại
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* Top form card for viewing details by userId */}
-      <div className="wishlist-topform">
-        <div className="detail-header">
-          <div className="title">Xem chi tiết theo User ID</div>
-          <div className="inline">
+  return (
+    <div className="wishlist-manager">
+      <div className="wishlist-container">
+        <div className="wishlist-toolbar">
+          <div className="search-box">
+            <span className="search-icon">Search</span>
             <input
-              placeholder="Nhập userId..."
-              value={String(detailUserId ?? '')}
-              onChange={(e) => setDetailUserId(e.target.value)}
+              type="text"
+              placeholder="Tìm theo Wishlist ID hoặc User ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input"
             />
-            <button onClick={() => openDetailByUserId(detailUserId)} disabled={loadingDetail}>
-              {loadingDetail ? 'Đang lấy...' : 'Lấy chi tiết'}
-            </button>
           </div>
+          <button onClick={loadWishlists} disabled={loading} className="btn btn-primary">
+            {loading ? "Loading..." : "Refresh Tải lại"}
+          </button>
         </div>
 
-        {detail && (
-          <div className="detail-body">
-            {detail?.error ? (
-              <div className="error">{detail.error}</div>
-            ) : (
-              <>
-                <div className="meta">
-                  <div>ID: {detail?.id ?? ''}</div>
-                  <div>User ID: {detail?.userId ?? ''}</div>
-                  <div>Tạo: {String(detail?.createdAt ?? '').slice(0,19).replace('T',' ')}</div>
-                  <div>Cập nhật: {String(detail?.updatedAt ?? '').slice(0,19).replace('T',' ')}</div>
-                </div>
-                <div className="items">
-                  <div className="details-title">Items</div>
-                <div className="items-head">
-                    <div>Sản phẩm</div>
-                    <div>Ghi chú</div>
-                  </div>
-                  {(detail?.items ?? []).map((it, idx) => (
-                    <div className="items-row" key={idx}>
-                      <div>{it?.productName ?? it?.name ?? `Item ${idx+1}`}</div>
-                      <div>{it?.note ?? ''}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+        {error && !error.includes("quyền") && (
+          <div className="error-box">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="loading">Loading Đang tải danh sách wishlist...</div>
+        ) : filteredWishlists.length === 0 ? (
+          <div className="empty">
+            <h3>Empty Không có wishlist nào</h3>
+            <p>Hãy thử tìm lại hoặc tải lại dữ liệu.</p>
+          </div>
+        ) : (
+          <div className="table-container">
+            <table className="wishlist-table">
+              <thead>
+                <tr>
+                  <th>Wishlist ID</th>
+                  <th>User ID</th>
+                  <th>Ngày tạo</th>
+                  <th>Cập nhật</th>
+                  <th>Số sản phẩm</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredWishlists.map((w) => (
+                  <tr
+                    key={w.id}
+                    className="wishlist-row"
+                    onClick={() => loadWishlistDetail(w.userId)}
+                  >
+                    <td><strong>#{w.id}</strong></td>
+                    <td>{w.userId}</td>
+                    <td>{formatDate(w.createdAt)}</td>
+                    <td>{formatDate(w.updatedAt)}</td>
+                    <td>
+                      <span className="item-count">
+                        {w.items?.length || 0} sản phẩm
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          loadWishlistDetail(w.userId);
+                        }}
+                        className="btn-view"
+                      >
+                        View Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {error ? (
-        <div className="error">{error}</div>
-      ) : (
-        <div className="wishlist-table">
-          <div className="wl-row wl-row--head">
-            <div className="col col--id">ID</div>
-            <div className="col col--user">User ID</div>
-            <div className="col col--items">Số item</div>
-            <div className="col col--created">Tạo lúc</div>
-            <div className="col col--updated">Cập nhật</div>
-            <div className="col col--actions">Thao tác</div>
-          </div>
-          {filtered.map(w => {
-            const id = w?.id;
-            const userId = w?.userId;
-            const itemsCount = (w?.items ?? []).length;
-            return (
-              <div className="wl-row" key={`${id}-${userId}`}>
-                <div className="col col--id">{id}</div>
-                <div className="col col--user">{userId}</div>
-                <div className="col col--items">{itemsCount}</div>
-                <div className="col col--created">{String(w?.createdAt ?? '').slice(0,19).replace('T',' ')}</div>
-                <div className="col col--updated">{String(w?.updatedAt ?? '').slice(0,19).replace('T',' ')}</div>
-                <div className="col col--actions">
-                  <button onClick={() => openDetailByUserId(userId)} disabled={loadingDetail}>
-                    {loadingDetail && detailUserId === userId ? 'Đang mở...' : 'Xem chi tiết'}
-                  </button>
+      {/* MODAL CHI TIẾT – ĐÃ SỬA HOÀN HẢO */}
+      {selectedWishlist && (
+        <div className="modal-overlay" onClick={() => setSelectedWishlist(null)}>
+          <div className="modal wide" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">
+                Wishlist của User ID: <strong>#{selectedWishlist.userId}</strong>
+              </h2>
+              <button onClick={() => setSelectedWishlist(null)} className="close-btn">
+                Close
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="info-grid">
+                <div className="info-item">
+                  <strong>Wishlist ID:</strong> #{selectedWishlist.id}
+                </div>
+                <div className="info-item">
+                  <strong>User ID:</strong> {selectedWishlist.userId}
+                </div>
+                <div className="info-item">
+                  <strong>Ngày tạo:</strong> {formatDate(selectedWishlist.createdAt)}
+                </div>
+                <div className="info-item">
+                  <strong>Cập nhật:</strong> {formatDate(selectedWishlist.updatedAt)}
+                </div>
+                <div className="info-item">
+                  <strong>Số sản phẩm:</strong> {(selectedWishlist.items || []).length}
                 </div>
               </div>
-            );
-          })}
-          {!loading && filtered.length === 0 && (
-            <div className="empty">Không có dữ liệu</div>
-          )}
+
+              {loadingDetail ? (
+                <div className="loading">Loading Đang tải sản phẩm...</div>
+              ) : (selectedWishlist.items || []).length === 0 ? (
+                <div className="empty">
+                  <p>Empty Wishlist trống</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="section-title">Sản phẩm trong wishlist</h3>
+                  <div className="items-grid">
+                    {selectedWishlist.items.map((item, i) => {
+                      const v = item.productVariant;
+                      return (
+                        <div key={item.id || i} className="product-card">
+                          <div className="product-image">
+                            <img
+                              src={v.imageUrl || "/placeholder.png"}
+                              alt={v.sku}
+                              onError={(e) => (e.target.src = "/placeholder.png")}
+                            />
+                          </div>
+                          <div className="product-info">
+                            <h4 className="product-sku">{v.sku}</h4>
+                            <p className="product-slug">{v.slug}</p>
+                            <div className="product-specs">
+                              <span className="spec">{v.color}</span>
+                              <span className="spec">{v.memory}GB</span>
+                            </div>
+                            <p className="product-price">{formatPrice(v.price)}</p>
+                            <p className="added-at">
+                              Thêm vào: {formatDate(item.addedAt)}
+                            </p>
+                            <div className="variant-id">
+                              <small>Variant ID: #{v.id}</small>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={() => setSelectedWishlist(null)} className="btn btn-secondary">
+                Close Đóng
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* bottom detail panel removed; now shown in top form */}
     </div>
   );
 }
-
-export default WishlistSection;
-
-

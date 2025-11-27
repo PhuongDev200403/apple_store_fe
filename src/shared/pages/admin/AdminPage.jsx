@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./AdminPage.css";
 import UsersSection from "./userSection/UsersSection";
 import CategoriesSection from "./categorySection/CategoriesSection";
@@ -9,34 +10,20 @@ import ReportsSection from "./reportsSection/ReportsSection";
 import OrdersSection from "./ordersSection/OrdersSection";
 import WishlistSection from "./wishlistSection/WishlistSection";
 import CartSection from "./cartSection/CartSection";
-
-// const SubCategoriesSection = () => (
-//   <div>
-//     <h3>📁 Quản lý danh mục con</h3>
-//     <p>Chức năng quản lý danh mục con sẽ được phát triển tại đây.</p>
-//   </div>
-// );
-
-// const ProductsSection = () => (
-//   <div>
-//     <h3>🛒 Quản lý sản phẩm</h3>
-//     <p>Chức năng quản lý sản phẩm sẽ được phát triển tại đây.</p>
-//   </div>
-// );
-
-// const VariantsSection = () => (
-//   <div>
-//     <h3>🎨 Quản lý biến thể sản phẩm</h3>
-//     <p>Chức năng quản lý biến thể sản phẩm sẽ được phát triển tại đây.</p>
-//   </div>
-// );
-
-// OrdersSection, WishlistSection moved to dedicated components
-
-// ReportsSection moved to dedicated component
+import NewsSection from "./newsSection/NewsSection";
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState("users");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm("Bạn có chắc muốn đăng xuất?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("username");
+      navigate("/dang-nhap");
+    }
+  };
 
   const renderSection = () => {
     switch (activeSection) {
@@ -56,6 +43,8 @@ export default function AdminPage() {
         return <WishlistSection />;
       case "cart":
         return <CartSection />;
+      case "news":
+        return <NewsSection />;
       case "reports":
         return <ReportsSection />;
       default:
@@ -66,18 +55,79 @@ export default function AdminPage() {
   return (
     <div className="admin-page">
       <aside className="sidebar">
-        <h2 className="sidebar-title">Trang Admin</h2>
+        <div className="sidebar-header">
+          <h2 className="sidebar-title">🎛️ Admin Panel</h2>
+          <div className="admin-info">
+            <span className="admin-name">👤 {localStorage.getItem("username") || "Admin"}</span>
+          </div>
+        </div>
         <nav>
-          <button onClick={() => setActiveSection("users")}>👤 Quản lý người dùng</button>
-          <button onClick={() => setActiveSection("categories")}>📂 Quản lý danh mục</button>
-          <button onClick={() => setActiveSection("subcategories")}>📁 Quản lý danh mục con</button>
-          <button onClick={() => setActiveSection("products")}>🛒 Quản lý sản phẩm</button>
-          <button onClick={() => setActiveSection("variants")}>🎨 Quản lý biến thể sản phẩm</button>
-          <button onClick={() => setActiveSection("orders")}>📦 Quản lý đơn hàng</button>
-          <button onClick={() => setActiveSection("wishlist")}>❤️ Quản lý danh sách yêu thích</button>
-          <button onClick={() => setActiveSection("cart")}>🛍️ Quản lý giỏ hàng</button>
-          <button onClick={() => setActiveSection("reports")}>📊 Báo cáo thống kê</button>
+          <button 
+            onClick={() => setActiveSection("users")}
+            className={activeSection === "users" ? "active" : ""}
+          >
+            👤 Quản lý người dùng
+          </button>
+          <button 
+            onClick={() => setActiveSection("categories")}
+            className={activeSection === "categories" ? "active" : ""}
+          >
+            📂 Quản lý danh mục
+          </button>
+          <button 
+            onClick={() => setActiveSection("subcategories")}
+            className={activeSection === "subcategories" ? "active" : ""}
+          >
+            📁 Quản lý danh mục con
+          </button>
+          <button 
+            onClick={() => setActiveSection("products")}
+            className={activeSection === "products" ? "active" : ""}
+          >
+            🛒 Quản lý sản phẩm
+          </button>
+          <button 
+            onClick={() => setActiveSection("variants")}
+            className={activeSection === "variants" ? "active" : ""}
+          >
+            🎨 Quản lý biến thể
+          </button>
+          <button 
+            onClick={() => setActiveSection("orders")}
+            className={activeSection === "orders" ? "active" : ""}
+          >
+            📦 Quản lý đơn hàng
+          </button>
+          <button 
+            onClick={() => setActiveSection("news")}
+            className={activeSection === "news" ? "active" : ""}
+          >
+            📰 Quản lý tin tức
+          </button>
+          <button 
+            onClick={() => setActiveSection("wishlist")}
+            className={activeSection === "wishlist" ? "active" : ""}
+          >
+            ❤️ Danh sách yêu thích
+          </button>
+          <button 
+            onClick={() => setActiveSection("cart")}
+            className={activeSection === "cart" ? "active" : ""}
+          >
+            🛍️ Giỏ hàng
+          </button>
+          <button 
+            onClick={() => setActiveSection("reports")}
+            className={activeSection === "reports" ? "active" : ""}
+          >
+            📊 Báo cáo thống kê
+          </button>
         </nav>
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="logout-btn">
+            🚪 Đăng xuất
+          </button>
+        </div>
       </aside>
 
       <section className="content">

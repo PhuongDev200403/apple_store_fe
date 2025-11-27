@@ -1,12 +1,91 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaClock, FaEye, FaUser, FaShare, FaHeart, FaArrowLeft } from 'react-icons/fa';
+import { getNewsById, getActiveNews } from '../../utils/api/newsApi';
 import './NewsDetailPage.css';
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+};
 
 export default function NewsDetailPage() {
   const { newsId } = useParams();
+  const navigate = useNavigate();
+  const [currentNews, setCurrentNews] = useState(null);
+  const [relatedNews, setRelatedNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock data - trong thực tế sẽ fetch từ API dựa trên newsId
+  useEffect(() => {
+    loadNewsDetail();
+  }, [newsId]);
+
+  const loadNewsDetail = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Lấy chi tiết tin tức và tin liên quan
+      const [newsDetail, allNews] = await Promise.all([
+        getNewsById(newsId),
+        getActiveNews()
+      ]);
+      
+      setCurrentNews(newsDetail);
+      
+      // Lọc tin liên quan (loại trừ tin hiện tại)
+      const related = Array.isArray(allNews) 
+        ? allNews.filter(news => news.id !== parseInt(newsId)).slice(0, 4)
+        : [];
+      setRelatedNews(related);
+    } catch (err) {
+      console.error('Error loading news detail:', err);
+      setError('Không thể tải tin tức. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="news-detail-page">
+        <div className="container">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Đang tải tin tức...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !currentNews) {
+    return (
+      <div className="news-detail-page">
+        <div className="container">
+          <div className="error-state">
+            <p>{error || 'Không tìm thấy tin tức'}</p>
+            <button onClick={() => navigate('/tin-tuc')} className="back-btn">
+              Quay lại danh sách tin tức
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mock data backup
   const newsData = {
     1: {
       id: 1,
@@ -217,13 +296,6 @@ export default function NewsDetailPage() {
     }
   };
 
-  // Lấy danh sách tin tức liên quan (loại trừ tin hiện tại)
-  const relatedNews = Object.values(newsData)
-    .filter(news => news.id !== parseInt(newsId))
-    .slice(0, 4); // Chỉ lấy 4 tin đầu tiên
-
-  const currentNews = newsData[newsId] || newsData[1];
-
   return (
     <div className="news-detail-page">
       <div className="container">
@@ -241,35 +313,33 @@ export default function NewsDetailPage() {
             <article className="news-article">
               {/* Header */}
               <header className="article-header">
-                <div className="article-category">{currentNews.category}</div>
+                {currentNews.isFeatured && (
+                  <div className="article-badge">⭐ Tin nổi bật</div>
+                )}
                 <h1 className="article-title">{currentNews.title}</h1>
                 <div className="article-meta">
                   <div className="meta-item">
                     <FaClock className="meta-icon" />
-                    <span>{currentNews.date}</span>
-                  </div>
-                  <div className="meta-item">
-                    <FaUser className="meta-icon" />
-                    <span>{currentNews.author}</span>
-                  </div>
-                  <div className="meta-item">
-                    <FaEye className="meta-icon" />
-                    <span>{currentNews.views} lượt xem</span>
+                    <span>{formatDate(currentNews.publishedAt)}</span>
                   </div>
                 </div>
               </header>
 
               {/* Featured Image */}
               <div className="article-featured-image">
-                <img src={currentNews.image} alt={currentNews.title} />
+                <img 
+                  src={currentNews.imageUrl || 'https://via.placeholder.com/1200x600?text=No+Image'} 
+                  alt={currentNews.title} 
+                />
               </div>
 
               {/* Article Content */}
               <div className="article-body">
-                <div 
-                  className="article-content"
-                  dangerouslySetInnerHTML={{ __html: currentNews.content }}
-                />
+                <div className="article-content">
+                  {currentNews.content?.split('\n').map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))}
+                </div>
               </div>
 
               {/* Article Actions */}
@@ -294,20 +364,22 @@ export default function NewsDetailPage() {
                 <article key={news.id} className="related-article">
                   <Link to={`/tin-tuc/${news.id}`} className="related-link">
                     <div className="related-image">
-                      <img src={news.image.replace('w=1200&h=600', 'w=300&h=200')} alt={news.title} />
-                      <div className="related-category">{news.category}</div>
+                      <img 
+                        src={news.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'} 
+                        alt={news.title} 
+                      />
+                      {news.isFeatured && <div className="related-badge">⭐</div>}
                     </div>
                     <div className="related-content">
                       <h4 className="related-title">{news.title}</h4>
-                      <p className="related-excerpt">{news.excerpt}</p>
+                      <p className="related-excerpt">
+                        {news.content?.substring(0, 100)}
+                        {news.content?.length > 100 ? '...' : ''}
+                      </p>
                       <div className="related-meta">
                         <div className="meta-item">
                           <FaClock className="meta-icon" />
-                          <span>{news.date}</span>
-                        </div>
-                        <div className="meta-item">
-                          <FaEye className="meta-icon" />
-                          <span>{news.views}</span>
+                          <span>{formatDate(news.publishedAt)}</span>
                         </div>
                       </div>
                     </div>

@@ -1,331 +1,494 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Phone, MapPin, User, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { FaShoppingCart, FaHeart, FaArrowLeft } from 'react-icons/fa';
+import { addToCart } from '../../utils/api/cartApi';
+import { addToWishlist } from '../../utils/api/wishlistApi';
+import './ProductDetail.css';
 
-export default function ProductDetailPage() {
-  const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState('blue');
+const sampleData = {
+  code: 0,
+  result: [
+    {
+      id: 4,
+      price: 30000000.0,
+      status: "ACTIVE",
+      imageUrl:
+        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760153536/apple-devices/e56079ec-78ec-4e2d-b357-d61a2dff96ff.webp",
+      quantity: 9,
+      memory: "256",
+      sku: "IP15-RED-256",
+      color: "red",
+      specifications: {
+        ram: "8GB",
+        storage: "256GB",
+        chip: "A17 Pro",
+        screen_size: "6.7 inch",
+        battery: "4422 mAh",
+        camera: "48MP + 12MP + 12MP",
+        os: "iOS 17",
+        weight: "221g",
+      },
+    },
+    {
+      id: 5,
+      price: 30000000.0,
+      status: "ACTIVE",
+      imageUrl:
+        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760675814/apple-devices/6c944c39-042e-44ce-8aa2-51e24d0e337d.webp",
+      quantity: 23,
+      memory: "256",
+      sku: "IP15-PINK-256",
+      color: "pink",
+      specifications: {
+        ram: "8GB",
+        storage: "256GB",
+        chip: "A17 Pro",
+        screen_size: "6.7 inch",
+        battery: "4422 mAh",
+        camera: "48MP + 12MP + 12MP",
+        os: "iOS 17",
+        weight: "221g",
+      },
+    },
+    {
+      id: 6,
+      price: 30000000.0,
+      status: "ACTIVE",
+      imageUrl:
+        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760690952/apple-devices/be7c7878-f9c7-4b0c-a9ad-80dcd8ee4bc7.webp",
+      quantity: 19,
+      memory: "256",
+      sku: "IP15-YELOW-256",
+      color: "yellow",
+      specifications: {
+        ram: "8GB",
+        storage: "256GB",
+        chip: "A17 Pro",
+        screen_size: "6.7 inch",
+        battery: "4422 mAh",
+        camera: "48MP + 12MP + 12MP",
+        os: "iOS 17",
+        weight: "221g",
+      },
+    },
+    {
+      id: 7,
+      price: 23000000.0,
+      status: "ACTIVE",
+      imageUrl:
+        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760926850/apple-devices/77e1ccb2-8258-4b45-9d74-068f528e20a8.webp",
+      quantity: 10,
+      memory: "128",
+      sku: "IP15-YELLOW-128",
+      color: "yellow",
+      specifications: {
+        ram: "8GB",
+        storage: "128GB",
+        chip: "A17 Pro",
+        screen_size: "6.7 inch",
+        battery: "4422 mAh",
+        camera: "48MP + 12MP + 12MP",
+        os: "iOS 17",
+        weight: "221g",
+      },
+    },
+  ],
+}
 
-  const colors = [
-    { name: 'blue', code: '#4A90E2' },
-    { name: 'black', code: '#1a1a1a' },
-    { name: 'purple', code: '#9B59B6' },
-    { name: 'white', code: '#F5F5F5' },
-    { name: 'red', code: '#E74C3C' },
-    { name: 'yellow', code: '#F1C40F' }
-  ];
+const relatedProducts = [
+  {
+    id: 101,
+    name: "AirPods Pro (Gen 2)",
+    price: 6490000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760153536/apple-devices/airpods-pro.webp",
+    category: "Tai nghe",
+  },
+  {
+    id: 102,
+    name: "AirPods Max",
+    price: 14990000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760675814/apple-devices/airpods-max.webp",
+    category: "Tai nghe",
+  },
+  {
+    id: 103,
+    name: "Ốp lưng Silicon",
+    price: 590000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760690952/apple-devices/case-silicon.webp",
+    category: "Phụ kiện",
+  },
+  {
+    id: 104,
+    name: "Cáp sạc USB-C",
+    price: 290000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760926850/apple-devices/cable-usb-c.webp",
+    category: "Phụ kiện",
+  },
+  {
+    id: 105,
+    name: "MagSafe Wallet",
+    price: 790000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760153536/apple-devices/magsafe-wallet.webp",
+    category: "Phụ kiện",
+  },
+  {
+    id: 106,
+    name: "Sạc nhanh 20W",
+    price: 890000,
+    image: "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760675814/apple-devices/charger-20w.webp",
+    category: "Phụ kiện",
+  },
+]
 
-  const relatedProducts = [
-    { id: 1, name: 'Ốp lưng MagSafe iPhone 14 Apple', price: '795.000đ', discount: '50%', oldPrice: '1.590.000đ' },
-    { id: 2, name: 'Tai nghe Apple EarPods Lightning', price: '600.000đ', discount: '25%', oldPrice: '800.000đ' },
-    { id: 3, name: 'Cáp Type-C to Lightning Apple 1m', price: '520.000đ', discount: '12%', oldPrice: '590.000đ' },
-    { id: 4, name: 'Cốc sạc nhanh Apple 20W Type-C', price: '690.000đ', discount: '8%', oldPrice: '750.000đ' }
-  ];
+export default function ProductDetail() {
+  const { productId, category } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [variants, setVariants] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedMemory, setSelectedMemory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
-  const productImages = [
-    { id: 1, color: 'blue' },
-    { id: 2, color: 'black' },
-    { id: 3, color: 'purple' },
-    { id: 4, color: 'red' },
-    { id: 5, color: 'yellow' }
-  ];
+  // Extract variant ID and product ID from URL or state
+  const clickedVariantId = location.state?.variantId;
+  const actualProductId = location.state?.productId || extractIdFromSlug(productId);
+
+  useEffect(() => {
+    if (actualProductId) {
+      fetchVariants();
+    }
+  }, [actualProductId]);
+
+  const extractIdFromSlug = (slug) => {
+    if (!slug) return null;
+    if (!isNaN(slug)) return parseInt(slug, 10);
+    const parts = slug.split('-');
+    const lastPart = parts[parts.length - 1];
+    const id = parseInt(lastPart, 10);
+    return isNaN(id) ? null : id;
+  };
+
+  const fetchVariants = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`http://localhost:8080/api/variants/${actualProductId}`);
+      const data = await response.json();
+      
+      let variantsList = [];
+      if (data.code === 0 && Array.isArray(data.result)) {
+        variantsList = data.result;
+      } else if (Array.isArray(data)) {
+        variantsList = data;
+      }
+      
+      setVariants(variantsList);
+      
+      // Set selected variant
+      if (clickedVariantId) {
+        const clickedVariant = variantsList.find(v => v.id === clickedVariantId);
+        if (clickedVariant) {
+          setSelectedVariant(clickedVariant);
+          setSelectedMemory(clickedVariant.memory);
+        } else {
+          setSelectedVariant(variantsList[0]);
+          setSelectedMemory(variantsList[0]?.memory);
+        }
+      } else {
+        setSelectedVariant(variantsList[0]);
+        setSelectedMemory(variantsList[0]?.memory);
+      }
+    } catch (err) {
+      console.error('Error fetching variants:', err);
+      setError('Không thể tải thông tin sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Vui lòng đăng nhập để thực hiện chức năng này');
+      navigate('/dang-nhap');
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddToCart = async () => {
+    if (!checkAuth()) return;
+    if (!selectedVariant || selectedVariant.quantity === 0) {
+      alert('Sản phẩm hiện không khả dụng');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      console.log('Adding to cart - Selected variant:', selectedVariant);
+      console.log('Variant ID:', selectedVariant.id);
+      console.log('Color:', selectedVariant.color, 'Memory:', selectedVariant.memory);
+      
+      await addToCart(selectedVariant.id, 1);
+      alert(`Đã thêm "${selectedVariant.color} - ${selectedVariant.memory}GB" vào giỏ hàng!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert(error.response?.data?.message || 'Không thể thêm vào giỏ hàng');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!checkAuth()) return;
+
+    try {
+      setProcessing(true);
+      await addToWishlist(selectedVariant.id);
+      alert('Đã thêm vào danh sách yêu thích!');
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+      alert(error.response?.data?.message || 'Không thể thêm vào danh sách yêu thích');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Get unique memory options
+  const uniqueMemories = Array.from(new Set(variants.map((item) => item.memory)));
+
+  // Filter variants by selected memory (use selectedVariant's memory if available)
+  const currentMemory = selectedVariant?.memory || selectedMemory;
+  const variantsByMemory = variants.filter((item) => item.memory === currentMemory);
+
+  // Get unique colors from variants with current memory
+  const uniqueColors = Array.from(new Map(variantsByMemory.map((item) => [item.color, item])).values());
+
+  // Handle color selection
+  const handleColorSelect = (color) => {
+    const variant = variantsByMemory.find((item) => item.color === color);
+    if (variant) {
+      setSelectedVariant(variant);
+    }
+  };
+
+  // Handle memory selection
+  const handleMemorySelect = (memory) => {
+    setSelectedMemory(memory);
+    const variant = variants.find((item) => item.memory === memory);
+    if (variant) {
+      setSelectedVariant(variant);
+    }
+    console.log('Selected memory:', memory);
+    console.log('Variants by memory:', variantsByMemory);
+    console.log('Selected variant:', variant);
+  };
+
+  const getColorHex = (color) => {
+    const colorMap = {
+      red: "#EF4444",
+      pink: "#EC4899",
+      yellow: "#FBBF24",
+      black: "#000000",
+      white: "#FFFFFF",
+      blue: "#3B82F6",
+      green: "#10B981",
+    };
+    return colorMap[color?.toLowerCase()] || "#CCCCCC";
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  if (loading) {
+    return (
+      <div className="product-detail-container">
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !selectedVariant) {
+    return (
+      <div className="product-detail-container">
+        <div className="error-state">
+          <h3>{error || 'Không tìm thấy sản phẩm'}</h3>
+          <button onClick={() => navigate(-1)} className="back-btn">
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Parse specifications if it's a string
+  const specs =
+    typeof selectedVariant.specifications === "string"
+      ? JSON.parse(selectedVariant.specifications)
+      : selectedVariant.specifications;
 
   return (
-    <div className="bg-light">
-      {/* Header */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <div className="container-fluid">
-          <a className="navbar-brand fw-bold" href="#">Sudes Phone</a>
-          <div className="d-flex align-items-center gap-3">
-            <div className="text-white small">
-              <MapPin size={16} className="d-inline me-1" />
-              Hệ thống 79 siêu thị
-            </div>
-            <div className="text-white small">
-              <Phone size={16} className="d-inline me-1" />
-              Gọi mua hàng: 1900 6750
-            </div>
-            <div className="text-white small">
-              <User size={16} className="d-inline me-1" />
-              Đăng nhập
-            </div>
-            <div className="text-white">
-              <ShoppingCart size={20} />
-              <span className="badge bg-danger ms-1">0</span>
-            </div>
+    <div className="product-detail-container">
+      <div className="product-wrapper">
+        {/* Left Section - Images */}
+        <div className="image-section">
+          <div className="main-image" key={selectedVariant.id}>
+            <img
+              src={selectedVariant.imageUrl || "/placeholder.svg"}
+              alt={`${selectedVariant.color} - ${selectedVariant.memory}GB`}
+              onError={(e) => (e.target.src = "/placeholder.svg")}
+            />
+          </div>
+
+          {/* Variant Thumbnails */}
+          <div className="thumbnails">
+            {variantsByMemory.map((variant) => (
+              <div
+                key={variant.id}
+                className={`thumbnail ${selectedVariant.id === variant.id ? "active" : ""}`}
+                onClick={() => setSelectedVariant(variant)}
+              >
+                <img
+                  src={variant.imageUrl || "/placeholder.svg"}
+                  alt={variant.color}
+                  onError={(e) => (e.target.src = "/placeholder.svg")}
+                />
+              </div>
+            ))}
           </div>
         </div>
-      </nav>
 
-      {/* Breadcrumb */}
-      <div className="container mt-3">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb">
-            <li className="breadcrumb-item"><a href="#" className="text-decoration-none">Trang chủ</a></li>
-            <li className="breadcrumb-item"><a href="#" className="text-decoration-none">iPad Pro 11</a></li>
-            <li className="breadcrumb-item active">iPhone 14 Plus 128GB - Chính hãng VN/A</li>
-          </ol>
-        </nav>
-      </div>
+        {/* Right Section - Product Info */}
+        <div className="info-section">
+          <h1 className="product-title">iPhone 15 Pro Max</h1>
 
-      {/* Main Product Section */}
-      <div className="container bg-white rounded shadow-sm p-4 mb-4">
-        <div className="row">
-          {/* Left: Product Images */}
-          <div className="col-lg-5">
-            <div className="text-center mb-3">
-              <img 
-                src="https://images.unsplash.com/photo-1663499482523-1c0d7a6c6d00?w=400&h=400&fit=crop" 
-                alt="iPhone 14 Plus" 
-                className="img-fluid rounded"
-                style={{ maxHeight: '400px' }}
-              />
+          <div className="price-section">
+            <span className="price">{formatPrice(selectedVariant.price)}</span>
+            <span className="stock">
+              {selectedVariant.quantity > 0 ? `${selectedVariant.quantity} còn hàng` : "Hết hàng"}
+            </span>
+          </div>
+
+          {/* Memory Selection */}
+          <div className="selection-group">
+            <label className="selection-label">Dung lượng</label>
+            <div className="memory-options">
+              {uniqueMemories.map((memory) => (
+                <button
+                  key={memory}
+                  className={`memory-btn ${selectedMemory === memory ? "active" : ""}`}
+                  onClick={() => handleMemorySelect(memory)}
+                >
+                  {memory}GB
+                </button>
+              ))}
             </div>
-            <div className="d-flex justify-content-center gap-2 flex-wrap">
-              {productImages.map((img) => (
-                <div key={img.id} className="border rounded p-2" style={{ width: '70px', cursor: 'pointer' }}>
-                  <img 
-                    src={`https://images.unsplash.com/photo-1663499482523-1c0d7a6c6d00?w=70&h=70&fit=crop`}
-                    alt={`Thumbnail ${img.id}`}
-                    className="img-fluid"
-                  />
+          </div>
+
+          {/* Color Selection */}
+          <div className="selection-group">
+            <label className="selection-label">Màu sắc</label>
+            <div className="color-options">
+              {uniqueColors.map((variant) => (
+                <button
+                  key={variant.color}
+                  className={`color-btn ${selectedVariant.color === variant.color ? "active" : ""}`}
+                  onClick={() => handleColorSelect(variant.color)}
+                  title={variant.color}
+                  style={{
+                    backgroundColor: getColorHex(variant.color),
+                    borderColor: selectedVariant.color === variant.color ? "#000" : "#ddd",
+                  }}
+                >
+                  {selectedVariant.color === variant.color && <span className="checkmark">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Specifications */}
+          <div className="specs-section">
+            <h3 className="specs-title">Thông số kỹ thuật</h3>
+            <div className="specs-grid">
+              {Object.entries(specs).map(([key, value]) => (
+                <div key={key} className="spec-item">
+                  <span className="spec-key">{key.replace(/_/g, " ")}</span>
+                  <span className="spec-value">{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Middle: Product Info */}
-          <div className="col-lg-4">
-            <h2 className="h4 mb-2">iPhone 14 Plus 128GB - Chính hãng VN/A</h2>
-            <p className="text-muted small mb-3">
-              <span className="badge bg-success me-2">4.5 ⭐</span>
-              Thương hiệu: Apple | Tình trạng: Còn hàng
-            </p>
-            
-            <div className="mb-3">
-              <h3 className="h3 text-danger fw-bold">21.490.000đ</h3>
-              <span className="text-muted text-decoration-line-through small">27.990.000đ</span>
-            </div>
-
-            <div className="mb-3">
-              <p className="small fw-bold mb-2">Màu sắc: Chọn màu để xem giá</p>
-              <div className="d-flex gap-2">
-                {colors.map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => setSelectedColor(color.name)}
-                    className={`btn rounded-circle p-0 ${selectedColor === color.name ? 'border-primary border-3' : 'border'}`}
-                    style={{ 
-                      width: '35px', 
-                      height: '35px', 
-                      backgroundColor: color.code,
-                      border: color.name === 'white' ? '2px solid #ddd' : 'none'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <div className="d-flex align-items-center gap-2 mb-2">
-                <span className="text-success">✓</span>
-                <span className="small">Máy mới Fullbox 100% - Chính hãng Apple</span>
-              </div>
-              <div className="d-flex align-items-center gap-2 mb-2">
-                <span className="text-success">✓</span>
-                <span className="small">Bảo hành 12 tháng chính hãng Apple</span>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <span className="text-success">✓</span>
-                <span className="small">Bảo hành chính hãng Apple 12 tháng</span>
-              </div>
-            </div>
-
-            <div className="d-flex align-items-center gap-3 mb-3">
-              <span className="small">Số lượng:</span>
-              <div className="btn-group">
-                <button 
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                >-</button>
-                <input 
-                  type="text" 
-                  className="form-control form-control-sm text-center" 
-                  value={quantity}
-                  style={{ width: '60px' }}
-                  readOnly
-                />
-                <button 
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={() => setQuantity(quantity + 1)}
-                >+</button>
-              </div>
-            </div>
-
-            <div className="d-grid gap-2">
-              <button className="btn btn-dark btn-lg">MUA NGAY</button>
-              <button className="btn btn-outline-danger">Thêm vào giỏ</button>
-            </div>
+          {/* Action Buttons */}
+          <div className="action-buttons">
+            <button 
+              className="btn-primary"
+              onClick={handleAddToCart}
+              disabled={processing || !selectedVariant || selectedVariant.quantity === 0}
+            >
+              {processing ? (
+                <>Đang thêm...</>
+              ) : (
+                <>
+                  <FaShoppingCart /> Thêm vào giỏ
+                </>
+              )}
+            </button>
+            <button 
+              className="btn-secondary"
+              onClick={handleAddToWishlist}
+              disabled={processing}
+            >
+              <FaHeart /> Yêu thích
+            </button>
           </div>
 
-          {/* Right: Promotions */}
-          <div className="col-lg-3">
-            <div className="card border-danger mb-3">
-              <div className="card-header bg-danger text-white text-center">
-                Khuyến mãi đặc biệt
-              </div>
-              <div className="card-body">
-                <ul className="list-unstyled small mb-0">
-                  <li className="mb-2">🎁 Giảm 200.000đ khi mua Airpods</li>
-                  <li className="mb-2">🎁 Nhận VIP 12 tháng 1 ĐỔI 1</li>
-                  <li className="mb-2">🎁 Giảm thêm 60%, tối đa 60.600.000 VNĐ khi mở thẻ TP Bank EVO</li>
-                  <li className="mb-2">🎁 Thu cũ đổi mới: Trợ giá cao trị giá từ 10 triệu đồng</li>
-                  <li>* Tặng cường lực</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-header bg-dark text-white">
-                Chính sách hỗ trợ
-              </div>
-              <div className="card-body">
-                <div className="small mb-2">🚚 Vận chuyển miễn phí</div>
-                <div className="small mb-2">📦 Quà tặng</div>
-                <div className="small mb-2">✅ Chứng nhận chất lượng</div>
-                <div className="small mb-2">☎️ Hotline: 1900 6750</div>
-                <div className="small">❤️ Thêm vào yêu thích</div>
-              </div>
-            </div>
+          {/* Product Details */}
+          <div className="details-footer">
+            <p>
+              SKU: <strong>{selectedVariant.sku}</strong>
+            </p>
+            <p>
+              Trạng thái: <strong>{selectedVariant.status === "ACTIVE" ? "Có sẵn" : "Không có"}</strong>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Related Products */}
-      <div className="container bg-white rounded shadow-sm p-4 mb-4">
-        <h3 className="h5 mb-4 fw-bold">THƯỜNG ĐƯỢC MUA CÙNG</h3>
-        <div className="row g-3">
+      {/* Related Products Section */}
+      <div className="related-products-section">
+        <h2 className="related-title">Sản phẩm liên quan</h2>
+        <div className="related-grid">
           {relatedProducts.map((product) => (
-            <div key={product.id} className="col-md-3">
-              <div className="card h-100 position-relative">
-                <span className="badge bg-danger position-absolute top-0 start-0 m-2">
-                  Giảm {product.discount}
-                </span>
-                <img 
-                  src={`https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=300&h=300&fit=crop`}
-                  className="card-img-top p-3" 
+            <div key={product.id} className="related-product-card">
+              <div className="related-image">
+                <img
+                  src={product.image || "/placeholder.svg"}
                   alt={product.name}
+                  onError={(e) => (e.target.src = "/placeholder.svg")}
                 />
-                <div className="card-body">
-                  <h6 className="card-title small">{product.name}</h6>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <p className="text-danger fw-bold mb-0">{product.price}</p>
-                      <small className="text-muted text-decoration-line-through">{product.oldPrice}</small>
-                    </div>
-                    <button className="btn btn-dark btn-sm">
-                      <ShoppingCart size={16} />
-                    </button>
-                  </div>
-                </div>
               </div>
+              <div className="related-info">
+                <p className="related-category">{product.category}</p>
+                <h3 className="related-name">{product.name}</h3>
+                <p className="related-price">{formatPrice(product.price)}</p>
+              </div>
+              <button className="related-add-btn">Thêm vào giỏ</button>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Product Specifications */}
-      <div className="container bg-white rounded shadow-sm p-4 mb-4">
-        <div className="row">
-          <div className="col-md-6">
-            <h3 className="h5 mb-4 fw-bold">THÔNG TIN SẢN PHẨM</h3>
-            <p className="small text-justify">
-              Mẫu dự đoán: iPhone 2023 về những tính năng iPhone thiết kể mang đầu có cải tiến màn hình iPhone 14 và màn hình lớn 6.7 inch tương tự iPhone 14 Pro Max. 
-              Sản phẩm được Apple kì vọng sẽ mang lại doanh số bán kỷ lục quả năm đầu thương được kỹ thuật hoàn thiện trong 
-              khúc thân máy với các hoàn thiện và đồ gốn đẹp mắt của series iPhone 14.
-            </p>
-          </div>
-          <div className="col-md-6">
-            <h3 className="h5 mb-4 fw-bold">THÔNG SỐ KỸ THUẬT</h3>
-            <table className="table table-sm table-bordered small">
-              <tbody>
-                <tr>
-                  <td className="fw-bold">Màng hình rộng</td>
-                  <td>Apple</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">Kích thước màn hình</td>
-                  <td>6.7 inches</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">Độ phân giải màn hình</td>
-                  <td>2778 x 1284 pixels</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">Loại màn hình</td>
-                  <td>OLED LTPS</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">Bộ nhớ trong</td>
-                  <td>128GB</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">Chipset</td>
-                  <td>Apple A15 Bionic</td>
-                </tr>
-                <tr>
-                  <td className="fw-bold">CPU</td>
-                  <td>A15</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-dark text-white py-4">
-        <div className="container">
-          <div className="row">
-            <div className="col-md-4">
-              <h5 className="fw-bold mb-3">Sudes Phone</h5>
-              <p className="small">
-                Hệ thống của hàng Sudes Phone chuyên bán lẻ điện thoại, máy tính laptop, smartwatch, phụ kiện chính hãng.
-              </p>
-              <p className="small mb-1">📍 Địa chỉ: L1-01 Giga, Phường 15, Quận 11, Tp.HCM</p>
-              <p className="small">📞 Điện thoại: 1900 6750</p>
-            </div>
-            <div className="col-md-2">
-              <h6 className="fw-bold mb-3">CHÍNH SÁCH</h6>
-              <ul className="list-unstyled small">
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Chính sách mua hàng</a></li>
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Chính sách đổi trả</a></li>
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Điều khoản sử dụng</a></li>
-              </ul>
-            </div>
-            <div className="col-md-3">
-              <h6 className="fw-bold mb-3">HƯỚNG DẪN</h6>
-              <ul className="list-unstyled small">
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Hướng dẫn mua hàng</a></li>
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Hướng dẫn đổi trả</a></li>
-                <li className="mb-2"><a href="#" className="text-white text-decoration-none">Hướng dẫn trả góp</a></li>
-              </ul>
-            </div>
-            <div className="col-md-3">
-              <h6 className="fw-bold mb-3">HỖ TRỢ THANH TOÁN</h6>
-              <div className="d-flex flex-wrap gap-2">
-                <span className="badge bg-light text-dark">ATM</span>
-                <span className="badge bg-light text-dark">VISA</span>
-                <span className="badge bg-light text-dark">MasterCard</span>
-                <span className="badge bg-light text-dark">Momo</span>
-              </div>
-            </div>
-          </div>
-          <hr className="my-3 border-secondary" />
-          <div className="text-center small">
-            © 2024 Sudes Phone. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </div>
-  );
+  )
 }

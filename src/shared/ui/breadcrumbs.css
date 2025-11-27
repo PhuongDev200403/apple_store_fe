@@ -2,31 +2,36 @@
   background:#f5f5f5; 
   border-top:1px solid #eee; 
   border-bottom:1px solid #eee; 
-  padding:8px 0; 
+  padding:10px 0; 
   overflow-x:auto; 
   white-space:nowrap; 
 }
 
 .breadcrumbs .container {
-  max-width: 1600px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 30px;
+  padding: 0 60px;
 }
 
 .breadcrumbs a { color:#0ea5e9; text-decoration:none; }
 .breadcrumbs .current { color:#ef4444; font-weight:600; }
 .breadcrumbs .sep { margin:0 8px; color:#999; }
 
+@media (max-width: 1400px) {
+  .breadcrumbs .container {
+    padding: 0 40px;
+  }
+}
+
 @media (max-width: 1200px) {
   .breadcrumbs .container {
-    max-width: 1200px;
-    padding: 0 20px;
+    padding: 0 30px;
   }
 }
 
 @media (max-width: 768px) {
   .breadcrumbs .container {
-    padding: 0 16px;
+    padding: 0 20px;
   }
 }
 

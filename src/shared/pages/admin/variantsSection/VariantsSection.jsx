@@ -1,559 +1,549 @@
-import React, { useState, useEffect } from "react";
-import { getAllProducts } from "../../../utils/api/productApi";
-import { getAllVariants, createVariant } from "../../../utils/api/variantApi";
+import React, { useState, useEffect, useRef } from "react";
 import "./VariantsSection.css";
+import { createVariant, getVariants, updateVariant, deleteVariant } from "../../../utils/api/variantApi";
 
-const VariantsSection = () => {
+export default function VariantsSection() {
+  const [search, setSearch] = useState("");
+  const [filtered, setFiltered] = useState([]);
   const [variants, setVariants] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editingVariant, setEditingVariant] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [variantsLoading, setVariantsLoading] = useState(true);
-  const isAdmin = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
-  const [showDetail, setShowDetail] = useState(false);
-  const [detailVariant, setDetailVariant] = useState(null);
-  const [specRows, setSpecRows] = useState([{ key: '', value: '' }]);
-  const [formData, setFormData] = useState({
-    price: "",
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [form, setForm] = useState({
+    productId: "",
+    sku: "",
     color: "",
     memory: "",
     quantity: "",
-    sku: "",
-    status: "ACTIVE",
-    imageUrl: "",
-    productId: "",
-    specifications: "",
+    price: "",
     slug: "",
+    status: "ACTIVE",
+    specifications: ""
   });
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
-  function formatCurrency(value) {
-    const num = Number(value || 0);
-    if (!Number.isFinite(num)) return '—';
-    return num.toLocaleString('vi-VN') + '₫';
-  }
-
-  function parseSpecificationsToRows(specString) {
-    const text = String(specString || '').trim();
-    if (!text) return [{ key: '', value: '' }];
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-    const rows = lines.map((l) => {
-      const [k, ...rest] = l.split(':');
-      const keyRaw = (k || '').trim();
-      const valRaw = rest.join(':').trim();
-      return {
-        key: sanitizeSpecToken(keyRaw),
-        value: sanitizeSpecToken(valRaw),
-      };
-    });
-    return rows.length > 0 ? rows : [{ key: '', value: '' }];
-  }
-
-  function rowsToSpecifications(rows) {
-    const cleaned = (rows || [])
-      .filter((r) => (r.key || r.value))
-      .map((r) => {
-        const k = sanitizeSpecToken(r.key || '');
-        const v = sanitizeSpecToken(r.value || '');
-        return `${k}: ${v}`.trim();
-      });
-    return cleaned.join('\n');
-  }
-
-  function sanitizeSpecToken(token) {
-    let t = String(token || '').trim();
-    // Repeatedly strip leading/trailing braces/brackets/parentheses/quotes/spaces
-    const edge = /[\s"'\{\}\[\]\(\)]+/;
-    while ((t && edge.test(t[0])) || (t && edge.test(t[t.length - 1]))) {
-      t = t.replace(/^[\s"'\{\[\(]+/, '').replace(/[\s"'\}\]\)]+$/, '');
-    }
-    // Remove any remaining quotes inside
-    t = t.replace(/["']/g, '');
-    return t.trim();
-  }
-
-  // Load danh sách sản phẩm cho dropdown và variants
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      setVariantsLoading(true);
-      try {
-        const [prods, vars] = await Promise.all([
-          getAllProducts(),
-          getAllVariants(),
-        ]);
-        if (!mounted) return;
-        setProducts(Array.isArray(prods) ? prods : []);
-        setVariants(Array.isArray(vars) ? vars : []);
-      } catch (_e) {
-        if (!mounted) return;
-        setProducts([]);
-        setVariants([]);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-          setVariantsLoading(false);
-        }
-      }
-    }
-    load();
-    return () => { mounted = false; };
-  }, []);
-
-  const filteredVariants = variants.filter((v) => {
-    const color = String(v?.color || '').toLowerCase();
-    const sku = String(v?.sku || '').toLowerCase();
-    const q = String(searchTerm || '').toLowerCase();
-    return color.includes(q) || sku.includes(q);
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleEdit = (variant) => {
-    setEditingVariant(variant);
-    setFormData({
-      price: variant?.price ?? '',
-      color: variant?.color ?? '',
-      memory: variant?.memory ?? '',
-      quantity: variant?.quantity ?? '',
-      sku: variant?.sku ?? '',
-      status: variant?.status ?? 'ACTIVE',
-      imageUrl: variant?.imageUrl ?? '',
-      productId: variant?.productId ?? '',
-      specifications: variant?.specifications ?? '',
-      slug: variant?.slug ?? '',
-      id: variant?.id,
-    });
-    setSpecRows(parseSpecificationsToRows(variant?.specifications));
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa biến thể này không?")) {
-      setVariants(variants.filter((v) => v.id !== id));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!isAdmin) return alert("Bạn không có quyền thêm biến thể.");
-    const specsString = rowsToSpecifications(specRows);
-    const payload = { ...formData, specifications: specsString };
-    try {
-      if (editingVariant) {
-        // Chưa có API update, tạm thời cập nhật local state
-        setVariants(
-          variants.map((v) => (v.id === editingVariant.id ? { ...payload, id: v.id } : v))
-        );
-        setEditingVariant(null);
-      } else {
-        await createVariant(payload);
-        const fresh = await getAllVariants();
-        setVariants(Array.isArray(fresh) ? fresh : []);
-      }
-    } catch (err) {
-      return alert(err?.message || 'Lưu biến thể thất bại');
-    }
-    setFormData({
-      price: "",
+  const openForm = (variant = null) => {
+    setModalOpen(true);
+    setEditing(!!variant);
+    setForm(variant || {
+      productId: "",
+      sku: "",
       color: "",
       memory: "",
       quantity: "",
-      sku: "",
-      status: "ACTIVE",
-      imageUrl: "",
-      productId: "",
-      specifications: "",
+      price: "",
       slug: "",
+      status: "ACTIVE",
+      specifications: ""
     });
-    setImageFile(null);
-    setSpecRows([{ key: '', value: '' }]);
+    setPreviewUrl("");
   };
 
-  function handleImageChange(e) {
-    const file = e.target.files && e.target.files[0];
-    setImageFile(file || null);
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, imageUrl: previewUrl }));
-    } else {
-      setFormData((prev) => ({ ...prev, imageUrl: "" }));
+  const closeForm = () => {
+    setModalOpen(false);
+    setEditing(false);
+  };
+
+  const openDetail = (variant) => {
+    const parsedVariant = { ...variant };
+    try {
+      parsedVariant._specs = typeof variant.specifications === 'string' 
+        ? JSON.parse(variant.specifications) 
+        : (variant.specifications || {});
+    } catch (e) {
+      console.log("[v0] Specifications parse error:", e);
+      parsedVariant._specs = {};
     }
-  }
+    setSelected(parsedVariant);
+  };
 
-  function openDetail(v) {
-    setDetailVariant(v);
-    setShowDetail(true);
-  }
+  const closeDetail = () => {
+    setSelected(null);
+  };
 
-  function closeDetail() {
-    setShowDetail(false);
-    setDetailVariant(null);
-  }
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getVariants();
+      setVariants(data);
+      setFiltered(data);
+    } catch (err) {
+      setError("Không thể tải biến thể sản phẩm.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitForm = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (editing) {
+        await updateVariant(form.id, form);
+      } else {
+        await createVariant(form);
+      }
+      load();
+      closeForm();
+    } catch (err) {
+      setError("Không thể lưu biến thể sản phẩm.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const imgUrl = (url) => {
+    return url;
+  };
+
+  const fmt = (num) => {
+    return num.toLocaleString("vi-VN");
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  useEffect(() => {
+    const newFiltered = variants.filter(v => 
+      v.sku.toLowerCase().includes(search.toLowerCase()) ||
+      v.color.toLowerCase().includes(search.toLowerCase()) ||
+      v.memory.toString().toLowerCase().includes(search.toLowerCase()) ||
+      v.price.toString().toLowerCase().includes(search.toLowerCase())
+    );
+    setFiltered(newFiltered);
+  }, [search, variants]);
 
   return (
-    <div className="variants-section">
-      <div className="variants-header">
-        <h2>
-          <i className="fa-solid fa-shapes text-pink-500"></i> Quản lý biến thể sản phẩm
-        </h2>
-        <div className="header-actions">
-          <button
-            className="btn add"
-            onClick={() => {
-              setShowForm(!showForm);
-              if (!showForm) {
-                setEditingVariant(null);
-                setFormData({
-                  price: "",
-                  color: "",
-                  memory: "",
-                  quantity: "",
-                  sku: "",
-                  status: "ACTIVE",
-                  imageUrl: "",
-                  productId: "",
-                  specifications: "",
-                  slug: "",
-                });
-              }
-            }}
-          >
-            {showForm ? "✖ Đóng" : "➕ Thêm biến thể"}
+    <div className="variants-manager">
+      <div className="page-header">
+        <div className="header-content">
+          <h1 className="page-title">Quản lý biến thể sản phẩm</h1>
+          <p className="page-subtitle">Tạo, chỉnh sửa và quản lý các biến thể sản phẩm của bạn</p>
+        </div>
+        <button onClick={() => openForm()} className="btn-create-primary">
+          <span className="btn-icon">+</span> Thêm mới
+        </button>
+      </div>
+
+      <div className="variants-container">
+        <div className="toolbar-section">
+          <div className="search-wrapper">
+            <svg className="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z" stroke="currentColor" strokeWidth="2"/>
+              <path d="M14 14L19 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input 
+              type="text"
+              placeholder="Tìm kiếm theo SKU, màu, bộ nhớ, giá..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              className="search-input"
+            />
+          </div>
+          <button onClick={load} disabled={loading} className="btn-refresh">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8M1 8C1 11.866 4.13401 15 8 15C11.866 15 15 11.866 15 8M1 8H4M15 8H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            {loading ? "Đang tải..." : "Tải lại"}
           </button>
         </div>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {loading ? (
+          <div className="state-empty">
+            <div className="spinner"></div>
+            <p>Đang tải biến thể...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="state-empty">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="2"/>
+              <path d="M24 14V24L30 30" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <h3>Không có biến thể</h3>
+            <p>Bắt đầu bằng cách tạo biến thể sản phẩm đầu tiên của bạn</p>
+            <button onClick={() => openForm()} className="btn-create-secondary">
+              + Thêm biến thể
+            </button>
+          </div>
+        ) : (
+          <div className="table-wrapper">
+            <table className="variants-table">
+              <thead>
+                <tr>
+                  <th>Ảnh</th>
+                  <th>SKU</th>
+                  <th>Màu sắc</th>
+                  <th>Dung lượng</th>
+                  <th>Giá</th>
+                  <th>Tồn kho</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(v => (
+                  <tr key={v.id} className="table-row">
+                    <td>
+                      <img src={imgUrl(v.imageUrl) || "/placeholder.svg"} alt={v.sku} className="variant-thumb" />
+                    </td>
+                    <td>
+                      <span className="sku-badge">{v.sku}</span>
+                    </td>
+                    <td>{v.color || "—"}</td>
+                    <td>{v.memory ? `${v.memory}GB` : "—"}</td>
+                    <td>
+                      <span className="price-text">{fmt(v.price)} đ</span>
+                    </td>
+                    <td>
+                      <span className={`stock-badge ${v.quantity > 0 ? "in-stock" : "out-stock"}`}>
+                        {v.quantity}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${v.status?.toLowerCase()}`}>
+                        {v.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button onClick={() => openDetail(v)} className="btn-action btn-view" title="Chi tiết">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 2C4 2 1 5 1 8s3 6 7 6 7-3 7-6-3-6-7-6zm0 11c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                          </svg>
+                        </button>
+                        <button onClick={() => openForm(v)} className="btn-action btn-edit" title="Chỉnh sửa">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M12.146.854c.196-.196.512-.196.708 0l2.292 2.292c.196.196.196.512 0 .708L3.646 15H1v-2.646L12.146.854zM13.5 2.5L14 2l-.5.5z"/>
+                          </svg>
+                        </button>
+                        <button onClick={() => deleteVariant(v.id)} className="btn-action btn-delete" title="Xóa">
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M14 1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h12zm-4 0H6v14h4V1zm-5 6h14v2H6v-2zm13 2H3v2h14v-2z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      <div className="search-bar">
-        <i className="fa-solid fa-magnifying-glass text-gray-500 mr-2"></i>
-        <input
-          type="text"
-          placeholder="Tìm theo SKU hoặc màu..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      {/* CREATE / EDIT MODAL - Modern Design */}
+      {modalOpen && (
+        <div className="modal-overlay" onClick={closeForm}>
+          <div className="modal-dialog" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-title">{editing ? "Chỉnh sửa biến thể" : "Tạo biến thể mới"}</h2>
+                <p className="modal-subtitle">
+                  {editing ? "Cập nhật thông tin biến thể sản phẩm" : "Thêm một biến thể sản phẩm mới"}
+                </p>
+              </div>
+              <button onClick={closeForm} className="modal-close">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M15.898 4.045l-5.853 5.853 5.853 5.853c.322.322.322.846 0 1.168-.322.322-.846.322-1.168 0l-5.853-5.853-5.853 5.853c-.322.322-.846.322-1.168 0-.322-.322-.322-.846 0-1.168z"/>
+                </svg>
+              </button>
+            </div>
 
-      <table className="variants-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Sản phẩm</th>
-            <th>Hình ảnh</th>
-            <th>SKU</th>
-            <th>Màu</th>
-            <th>Dung lượng</th>
-            <th>Giá</th>
-            <th>Số lượng</th>
-            <th>Slug</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {variantsLoading ? (
-            <tr>
-              <td colSpan="10" style={{ textAlign: 'center', color: '#6b7280' }}>Đang tải...</td>
-            </tr>
-          ) : filteredVariants.map((v, index) => (
-            <tr key={v.id}>
-              <td>{index + 1}</td>
-              <td>{products.find(p => p.id === v.productId)?.name || '—'}</td>
-              <td>
-                <img
-                  src={v.imageUrl}
-                  alt={v.color}
-                  className="variant-img"
-                  onError={(e) =>
-                    (e.target.src =
-                      "https://via.placeholder.com/80x80?text=No+Image")
-                  }
-                />
-              </td>
-              <td>{v.sku}</td>
-              <td>{v.color}</td>
-              <td>{v.memory || "—"}</td>
-              <td>{formatCurrency(v.price)}</td>
-              <td>{v.quantity}</td>
-              <td>{v.slug || '—'}</td>
-              <td
-                className={
-                  v.status === "ACTIVE" ? "status-active" : "status-out"
-                }
-              >
-                {v.status}
-              </td>
-              <td>
-                <button
-                  className="btn-edit"
-                  onClick={() => handleEdit(v)}
-                  disabled={!isAdmin}
-                >
-                  ✏ Sửa
-                </button>
-                 <button
-                   className="btn-view"
-                   onClick={() => openDetail(v)}
-                 >
-                   👁 Xem
-                 </button>
-                <button
-                  className="btn-delete"
-                  onClick={() => handleDelete(v.id)}
-                  disabled={!isAdmin}
-                >
-                  🗑 Xóa
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {showForm && (
-        <div className="variant-form-card">
-          <form className="variant-form" onSubmit={handleSubmit}>
-            <h3>{editingVariant ? "Cập nhật biến thể" : "Thêm biến thể mới"}</h3>
-            <div className="form-grid two-columns">
-              <div className="form-field">
-                <label>Sản phẩm</label>
-                <select
-                  name="productId"
-                  value={formData.productId}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                >
-                  <option value="">-- Chọn sản phẩm --</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-field">
-                <label>SKU</label>
-                <input
-                  type="text"
-                  name="sku"
-                  placeholder="SKU"
-                  value={formData.sku}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>Màu sắc</label>
-                <input
-                  type="text"
-                  name="color"
-                  placeholder="Màu sắc"
-                  value={formData.color}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-field">
-                <label>Dung lượng GB</label>
-                <input
-                  type="text"
-                  name="memory"
-                  placeholder="Dung lượng GB"
-                  value={formData.memory}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-field">
-                <label>Giá</label>
-                <input
-                  type="number"
-                  name="price"
-                  placeholder="Giá"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>Số lượng</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  placeholder="Số lượng"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="form-field">
-                <label>Slug tùy chọn</label>
-                <input
-                  type="text"
-                  name="slug"
-                  placeholder="Slug tùy chọn"
-                  value={formData.slug}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="form-field">
-                <label>Trạng thái</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="OUT_OF_STOCK">OUT_OF_STOCK</option>
-                </select>
-              </div>
-              <div className="form-field full">
-                <label>Hình ảnh</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-                {formData.imageUrl && (
-                  <div className="image-preview" style={{ marginTop: 8 }}>
-                    <img
-                      src={formData.imageUrl}
-                      alt="preview"
-                      className="variant-img"
-                      onError={(e) =>
-                        (e.target.src = "https://via.placeholder.com/80x80?text=No+Image")
-                      }
+            <form onSubmit={submitForm} className="modal-body">
+              <div className="form-sections">
+                {/* Left Column - Basic Info */}
+                <div className="form-section">
+                  <h3 className="section-title">Thông tin cơ bản</h3>
+                  
+                  <div className="form-group">
+                    <label htmlFor="productId" className="form-label">Product ID <span className="required">*</span></label>
+                    <input 
+                      id="productId"
+                      type="number" 
+                      value={form.productId} 
+                      onChange={e => setForm({...form, productId: e.target.value})} 
+                      className="form-input"
+                      placeholder="Nhập Product ID"
+                      required 
                     />
                   </div>
-                )}
-              </div>
-              <div className="form-field full">
-                <label>Thông số kỹ thuật</label>
-                <table className="spec-table">
-                  <thead>
-                    <tr>
-                      <th>Tên</th>
-                      <th>Giá trị</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {specRows.map((row, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <input
-                            type="text"
-                            value={row.key}
-                            placeholder="VD: Màn hình"
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setSpecRows((prev) => prev.map((r, i) => i === idx ? { ...r, key: v } : r));
+
+                  <div className="form-group">
+                    <label htmlFor="sku" className="form-label">SKU <span className="required">*</span></label>
+                    <input 
+                      id="sku"
+                      type="text" 
+                      value={form.sku} 
+                      onChange={e => setForm({...form, sku: e.target.value})} 
+                      className="form-input"
+                      placeholder="VD: SKU-001"
+                      required 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="color" className="form-label">Màu sắc</label>
+                    <input 
+                      id="color"
+                      type="text" 
+                      value={form.color} 
+                      onChange={e => setForm({...form, color: e.target.value})} 
+                      className="form-input"
+                      placeholder="VD: Đen, Trắng"
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="memory" className="form-label">Dung lượng (GB)</label>
+                      <input 
+                        id="memory"
+                        type="text" 
+                        value={form.memory} 
+                        onChange={e => setForm({...form, memory: e.target.value})} 
+                        className="form-input"
+                        placeholder="128, 256..."
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="quantity" className="form-label">Số lượng</label>
+                      <input 
+                        id="quantity"
+                        type="number" 
+                        value={form.quantity} 
+                        onChange={e => setForm({...form, quantity: e.target.value})} 
+                        className="form-input"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="price" className="form-label">Giá <span className="required">*</span></label>
+                    <div className="input-prefix">
+                      <input 
+                        id="price"
+                        type="number" 
+                        value={form.price} 
+                        onChange={e => setForm({...form, price: e.target.value})} 
+                        className="form-input"
+                        placeholder="0"
+                        required 
+                      />
+                      <span className="currency">đ</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Image & Status */}
+                <div className="form-section">
+                  <h3 className="section-title">Ảnh & Trạng thái</h3>
+
+                  <div className="form-group">
+                    <label className="form-label">Ảnh sản phẩm</label>
+                    <div className="image-upload-zone">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        id="image-upload"
+                        className="file-input"
+                      />
+                      <label htmlFor="image-upload" className="upload-label">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                          <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 24c-5.523 0-10-4.477-10-10S10.477 6 16 6s10 4.477 10 10-4.477 10-10 10zm3.5-14h-3V9.5h-1V12h-3v1h3v3.5h1V13h3v-1z" fill="currentColor"/>
+                        </svg>
+                        <span className="upload-text">Chọn ảnh hoặc kéo thả</span>
+                        <span className="upload-hint">PNG, JPG, WebP (Tối đa 10MB)</span>
+                      </label>
+                      {previewUrl && (
+                        <div className="image-preview-container">
+                          <img src={previewUrl || "/placeholder.svg"} alt="Preview" className="preview-image" />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setPreviewUrl("");
+                              fileInputRef.current.value = "";
                             }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            value={row.value}
-                            placeholder='VD: 6.7" Super Retina XDR'
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setSpecRows((prev) => prev.map((r, i) => i === idx ? { ...r, value: v } : r));
-                            }}
-                          />
-                        </td>
-                        <td style={{ width: 1, whiteSpace: 'nowrap' }}>
-                          <button type="button" className="btn-spec del" onClick={() => setSpecRows((prev) => prev.filter((_, i) => i !== idx))}>✖</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <button type="button" className="btn-spec add" onClick={() => setSpecRows((prev) => ([...prev, { key: '', value: '' }]  ))}>➕ Thêm thông số</button>
+                            className="btn-remove-image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="slug" className="form-label">Slug</label>
+                    <input 
+                      id="slug"
+                      type="text" 
+                      value={form.slug} 
+                      onChange={e => setForm({...form, slug: e.target.value})} 
+                      className="form-input"
+                      placeholder="product-variant-slug"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="status" className="form-label">Trạng thái</label>
+                    <select 
+                      id="status"
+                      value={form.status} 
+                      onChange={e => setForm({...form, status: e.target.value})}
+                      className="form-select"
+                    >
+                      <option value="ACTIVE">Hoạt động</option>
+                      <option value="INACTIVE">Không hoạt động</option>
+                      <option value="OUT_OF_STOCK">Hết hàng</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="form-buttons">
-              <button type="submit" className="btn-add">
-                {editingVariant ? "Lưu thay đổi" : "Thêm"}
-              </button>
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => {
-                  setEditingVariant(null);
-                  setShowForm(false);
-                }}
-              >
-                Hủy
-              </button>
-            </div>
-          </form>
+
+              {/* Full width - Specifications */}
+              <div className="form-section form-section-full">
+                <h3 className="section-title">Thông số kỹ thuật</h3>
+                <div className="form-group">
+                  <label htmlFor="specs" className="form-label">JSON Specifications</label>
+                  <textarea
+                    id="specs"
+                    rows={6}
+                    value={form.specifications}
+                    onChange={e => setForm({...form, specifications: e.target.value})}
+                    className="form-textarea"
+                    placeholder={`{\n  "ram": "8GB",\n  "chip": "A17 Pro",\n  "screen_size": "6.7 inch"\n}`}
+                  />
+                  <p className="specs-hint">Nhập thông tin dưới dạng JSON hợp lệ</p>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" onClick={closeForm} className="btn-cancel">
+                  Hủy
+                </button>
+                <button type="submit" className="btn-submit" disabled={submitting}>
+                  {submitting ? "Đang xử lý..." : (editing ? "Cập nhật" : "Tạo mới")}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
-      {showDetail && detailVariant && (
-        <div className="modal-backdrop" onClick={closeDetail}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+
+      {/* DETAIL MODAL */}
+      {selected && (
+        <div className="modal-overlay" onClick={closeDetail}>
+          <div className="modal-dialog" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Chi tiết biến thể</h3>
-              <button className="modal-close" onClick={closeDetail}>✖</button>
+              <div>
+                <h2 className="modal-title">Chi tiết biến thể</h2>
+                <p className="modal-subtitle">SKU: {selected.sku}</p>
+              </div>
+              <button onClick={closeDetail} className="modal-close">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M15.898 4.045l-5.853 5.853 5.853 5.853c.322.322.322.846 0 1.168-.322.322-.846.322-1.168 0l-5.853-5.853-5.853 5.853c-.322.322-.846.322-1.168 0-.322-.322-.322-.846 0-1.168l5.853-5.853-5.853-5.853c-.322-.322-.322-.846 0-1.168.322-.322.846-.322 1.168 0l5.853 5.853 5.853-5.853c.322-.322.846-.322 1.168 0 .322.322.322.846 0 1.168z"/>
+                </svg>
+              </button>
             </div>
             <div className="modal-body">
               <div className="detail-grid">
                 <div className="detail-image">
-                  <img
-                    src={detailVariant.imageUrl}
-                    alt="variant"
-                    className="variant-img"
-                    onError={(e) => (e.target.src = "https://via.placeholder.com/120x120?text=No+Image")}
-                  />
+                  <img src={imgUrl(selected.imageUrl) || "/placeholder.svg"} alt={selected.sku} className="detail-img" />
                 </div>
                 <div className="detail-info">
-                  <p><strong>Sản phẩm:</strong> {products.find(p => p.id === detailVariant.productId)?.name || '—'}</p>
-                  <p><strong>SKU:</strong> {detailVariant.sku || '—'}</p>
-                  <p><strong>Màu:</strong> {detailVariant.color || '—'}</p>
-                  <p><strong>Dung lượng:</strong> {detailVariant.memory || '—'}</p>
-                  <p><strong>Giá:</strong> {formatCurrency(detailVariant.price)}</p>
-                  <p><strong>Số lượng:</strong> {detailVariant.quantity ?? '—'}</p>
-                  <p><strong>Slug:</strong> {detailVariant.slug || '—'}</p>
-                  <p><strong>Trạng thái:</strong> {detailVariant.status}</p>
+                  <div className="detail-row">
+                    <span className="detail-label">ID sản phẩm</span>
+                    <span className="detail-value">#{selected.productId}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">SKU</span>
+                    <code className="detail-code">{selected.sku}</code>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Giá</span>
+                    <span className="detail-price">{fmt(selected.price)} đ</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Tồn kho</span>
+                    <span className={`stock-badge ${selected.quantity > 0 ? "in-stock" : "out-stock"}`}>
+                      {selected.quantity} sản phẩm
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Trạng thái</span>
+                    <span className={`status-badge status-${selected.status?.toLowerCase()}`}>
+                      {selected.status}
+                    </span>
+                  </div>
+                  {selected.color && (
+                    <div className="detail-row">
+                      <span className="detail-label">Màu sắc</span>
+                      <span className="detail-value">{selected.color}</span>
+                    </div>
+                  )}
+                  {selected.memory && (
+                    <div className="detail-row">
+                      <span className="detail-label">Dung lượng</span>
+                      <span className="detail-value">{selected.memory}GB</span>
+                    </div>
+                  )}
+                  {selected.slug && (
+                    <div className="detail-row">
+                      <span className="detail-label">Slug</span>
+                      <code className="detail-code">{selected.slug}</code>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="detail-specs">
-                <h4>Thông số kỹ thuật</h4>
-                {(() => {
-                  const rows = parseSpecificationsToRows(detailVariant.specifications);
-                  const nonEmpty = rows.filter(r => r.key || r.value);
-                  if (nonEmpty.length === 0) return (<p style={{ color: '#6b7280' }}>Chưa có thông số</p>);
-                  return (
-                    <table className="spec-table">
-                      <thead>
-                        <tr>
-                          <th>Tên</th>
-                          <th>Giá trị</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {nonEmpty.map((r, i) => (
-                          <tr key={i}>
-                            <td>{sanitizeSpecToken(r.key)}</td>
-                            <td>{sanitizeSpecToken(r.value)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  );
-                })()}
-              </div>
+
+              {selected._specs && Object.keys(selected._specs).length > 0 && (
+                <div className="specs-section">
+                  <h3 className="specs-title">Thông số kỹ thuật</h3>
+                  <div className="specs-grid">
+                    {Object.entries(selected._specs).map(([k, val]) => (
+                      <div key={k} className="spec-item">
+                        <span className="spec-key">{k.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        <span className="spec-value">{String(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="modal-actions">
-              <button className="btn-add" onClick={closeDetail}>Đóng</button>
+            <div className="modal-footer">
+              <button onClick={closeDetail} className="btn-cancel">Đóng</button>
+              <button onClick={() => { closeDetail(); openForm(selected); }} className="btn-submit">
+                Chỉnh sửa
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-};
+}
 
-export default VariantsSection;
+
+

@@ -1,11 +1,81 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaClock, FaEye, FaUser } from 'react-icons/fa';
+import { getActiveNews, getFeaturedNews } from '../../utils/api/newsApi';
 import './NewsPage.css';
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 export default function NewsPage() {
-  // Danh sách tin tức chính (cột trái)
-  const newsList = [
+  const [newsList, setNewsList] = useState([]);
+  const [featuredList, setFeaturedList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadNews();
+  }, []);
+
+  const loadNews = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Lấy tin tức đang hoạt động và tin nổi bật song song
+      const [activeNewsData, featuredNewsData] = await Promise.all([
+        getActiveNews(),
+        getFeaturedNews()
+      ]);
+      
+      setNewsList(Array.isArray(activeNewsData) ? activeNewsData : []);
+      setFeaturedList(Array.isArray(featuredNewsData) ? featuredNewsData : []);
+    } catch (err) {
+      console.error('Error loading news:', err);
+      setError('Không thể tải tin tức. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="news-page">
+        <div className="container">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Đang tải tin tức...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="news-page">
+        <div className="container">
+          <div className="error-state">
+            <p>{error}</p>
+            <button onClick={loadNews} className="retry-btn">Thử lại</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mock data backup nếu API không trả về dữ liệu
+  const mockNewsList = [
     {
       id: 1,
       title: "'Thò thụt': iPhone đã đúng khi không đụng đến tính năng này suốt những năm qua - Đình đám một thời nay đã chết yểu",
@@ -88,17 +158,9 @@ export default function NewsPage() {
     }
   ];
 
-  // Tin tức nổi bật (cột phải)
-  const featuredNews = {
-    id: 1,
-    title: "IPHONE 15 PRO MAX: CUỘC CÁCH MẠNG CÔNG NGHỆ MỚI",
-    excerpt: "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ, camera 48MP và thiết kế Titanium cao cấp. Trải nghiệm sức mạnh vượt trội với hiệu năng đỉnh cao và khả năng chụp ảnh chuyên nghiệp. Đây là bước tiến lớn nhất của Apple trong năm 2024.",
-    image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&h=400&fit=crop&q=80",
-    date: "29/04/2023",
-    author: "Apple News",
-    views: "25.8k",
-    category: "iPhone"
-  };
+  // Sử dụng dữ liệu từ API hoặc mock data
+  const displayNewsList = newsList.length > 0 ? newsList : mockNewsList;
+  const displayFeaturedNews = featuredList.length > 0 ? featuredList[0] : null;
 
   return (
     <div className="news-page">
@@ -107,65 +169,75 @@ export default function NewsPage() {
           {/* Cột trái - Danh sách tin tức */}
           <div className="main-content">
             <h2 className="section-title">Tin tức công nghệ</h2>
-            <div className="news-grid">
-              {newsList.map((news) => (
-                <article key={news.id} className="news-card">
-                  <Link to={`/tin-tuc/${news.id}`} className="news-link">
-                    <div className="news-image">
-                      <img src={news.image} alt={news.title} />
-                      <div className="news-category">{news.category}</div>
-                    </div>
-                    <div className="news-content">
-                      <div className="news-meta">
-                        <div className="meta-item">
-                          <FaClock className="meta-icon" />
-                          <span>{news.date}</span>
-                        </div>
-                        <div className="meta-item">
-                          <FaUser className="meta-icon" />
-                          <span>{news.author}</span>
-                        </div>
-                        <div className="meta-item">
-                          <FaEye className="meta-icon" />
-                          <span>{news.views} lượt xem</span>
-                        </div>
+            {displayNewsList.length === 0 ? (
+              <div className="empty-state">
+                <p>Chưa có tin tức nào</p>
+              </div>
+            ) : (
+              <div className="news-grid">
+                {displayNewsList.map((news) => (
+                  <article key={news.id} className="news-card">
+                    <Link to={`/tin-tuc/${news.id}`} className="news-link">
+                      <div className="news-image">
+                        <img 
+                          src={news.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'} 
+                          alt={news.title} 
+                        />
+                        {news.isFeatured && <div className="news-badge">⭐ Nổi bật</div>}
                       </div>
-                      <h3 className="news-title">{news.title}</h3>
-                      <p className="news-excerpt">{news.excerpt}</p>
-                    </div>
-                  </Link>
-                </article>
-              ))}
-            </div>
+                      <div className="news-content">
+                        <div className="news-meta">
+                          <div className="meta-item">
+                            <FaClock className="meta-icon" />
+                            <span>{formatDate(news.publishedAt)}</span>
+                          </div>
+                        </div>
+                        <h3 className="news-title">{news.title}</h3>
+                        <p className="news-excerpt">
+                          {news.content?.substring(0, 150)}
+                          {news.content?.length > 150 ? '...' : ''}
+                        </p>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Cột phải - Tin tức nổi bật */}
           <aside className="featured-sidebar">
             <h3 className="sidebar-title">Tin tức nổi bật</h3>
-            <article className="featured-article">
-              <div className="featured-image">
-                <img src={featuredNews.image} alt={featuredNews.title} />
-                <div className="featured-category">{featuredNews.category}</div>
+            {displayFeaturedNews ? (
+              <Link to={`/tin-tuc/${displayFeaturedNews.id}`} className="featured-link">
+                <article className="featured-article">
+                  <div className="featured-image">
+                    <img 
+                      src={displayFeaturedNews.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'} 
+                      alt={displayFeaturedNews.title} 
+                    />
+                    <div className="featured-badge">⭐ Nổi bật</div>
+                  </div>
+                  <div className="featured-content">
+                    <div className="featured-meta">
+                      <div className="meta-item">
+                        <FaClock className="meta-icon" />
+                        <span>{formatDate(displayFeaturedNews.publishedAt)}</span>
+                      </div>
+                    </div>
+                    <h4 className="featured-title">{displayFeaturedNews.title}</h4>
+                    <p className="featured-excerpt">
+                      {displayFeaturedNews.content?.substring(0, 200)}
+                      {displayFeaturedNews.content?.length > 200 ? '...' : ''}
+                    </p>
+                  </div>
+                </article>
+              </Link>
+            ) : (
+              <div className="empty-featured">
+                <p>Chưa có tin nổi bật</p>
               </div>
-              <div className="featured-content">
-                <div className="featured-meta">
-                  <div className="meta-item">
-                    <FaClock className="meta-icon" />
-                    <span>{featuredNews.date}</span>
-                  </div>
-                  <div className="meta-item">
-                    <FaUser className="meta-icon" />
-                    <span>{featuredNews.author}</span>
-                  </div>
-                  <div className="meta-item">
-                    <FaEye className="meta-icon" />
-                    <span>{featuredNews.views} lượt xem</span>
-                  </div>
-                </div>
-                <h4 className="featured-title">{featuredNews.title}</h4>
-                <p className="featured-excerpt">{featuredNews.excerpt}</p>
-              </div>
-            </article>
+            )}
           </aside>
         </div>
       </div>
