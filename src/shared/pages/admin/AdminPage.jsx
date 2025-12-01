@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./AdminPage.css";
 import UsersSection from "./userSection/UsersSection";
 import CategoriesSection from "./categorySection/CategoriesSection";
+import CategoryChildSection from "./categoryChildSection/CategoryChildSection";
 import ProductsSection from "./productSection/ProductsSection";
 import SubCategoriesSection from "./subCategoriesSection/SubCategoriesSection";
 import VariantsSection from "./variantsSection/VariantsSection";
@@ -32,7 +33,7 @@ export default function AdminPage() {
       case "categories":
         return <CategoriesSection />;
       case "subcategories":
-        return <SubCategoriesSection />;
+        return <CategoryChildSection />;
       case "products":
         return <ProductsSection />;
       case "variants":
