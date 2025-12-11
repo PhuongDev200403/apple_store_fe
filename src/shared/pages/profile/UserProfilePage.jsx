@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FaUser, FaArrowLeft, FaEnvelope, FaPhone, FaCalendar, FaShieldAlt } from 'react-icons/fa';
+import { FaUser, FaArrowLeft, FaEnvelope, FaPhone, FaCalendar, FaShieldAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { getMyInfo } from '../../utils/api/userApi';
+import { getCurrentUser, updateCurrentUser } from '../../utils/api/userApi';
 import './UserProfilePage.css';
 
 export default function UserProfilePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [updating, setUpdating] = useState(false);
+  
+  const currentUserRole = localStorage.getItem('role');
 
   useEffect(() => {
     fetchUserInfo();
@@ -17,13 +22,79 @@ export default function UserProfilePage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getMyInfo();
+      const data = await getCurrentUser();
       setUser(data);
+      setEditForm({
+        username: data.username || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        role: data.role || 'USER'
+      });
     } catch (err) {
       console.error('Error loading user info:', err);
       setError(err.message || 'Không thể tải thông tin tài khoản');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({
+      username: user.username || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role || 'USER'
+    });
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setUpdating(true);
+      
+      // Prepare update data (exclude role if not admin)
+      const updateData = {
+        username: editForm.username,
+        email: editForm.email,
+        phone: editForm.phone
+      };
+      
+      // Only admin can update role
+      if (currentUserRole === 'ADMIN') {
+        updateData.role = editForm.role;
+      }
+      
+      const updatedUser = await updateCurrentUser(updateData);
+      setUser(updatedUser);
+      setIsEditing(false);
+      alert('Cập nhật thông tin thành công!');
+    } catch (err) {
+      console.error('Error updating user:', err);
+      
+      let errorMessage = 'Không thể cập nhật thông tin. Vui lòng thử lại!';
+      
+      if (err.response?.status === 403) {
+        errorMessage = 'Bạn không có quyền cập nhật thông tin này.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -106,7 +177,17 @@ export default function UserProfilePage() {
                   </div>
                   <div className="info-content">
                     <span className="info-label">Họ và tên</span>
-                    <span className="info-value">{user?.username || 'N/A'}</span>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        className="edit-input"
+                        value={editForm.username}
+                        onChange={(e) => handleInputChange('username', e.target.value)}
+                        placeholder="Nhập họ và tên"
+                      />
+                    ) : (
+                      <span className="info-value">{user?.username || 'N/A'}</span>
+                    )}
                   </div>
                 </div>
 
@@ -116,7 +197,17 @@ export default function UserProfilePage() {
                   </div>
                   <div className="info-content">
                     <span className="info-label">Email</span>
-                    <span className="info-value">{user?.email || 'N/A'}</span>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        className="edit-input"
+                        value={editForm.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="Nhập email"
+                      />
+                    ) : (
+                      <span className="info-value">{user?.email || 'N/A'}</span>
+                    )}
                   </div>
                 </div>
 
@@ -126,7 +217,17 @@ export default function UserProfilePage() {
                   </div>
                   <div className="info-content">
                     <span className="info-label">Số điện thoại</span>
-                    <span className="info-value">{user?.phone || 'N/A'}</span>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        className="edit-input"
+                        value={editForm.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="Nhập số điện thoại"
+                      />
+                    ) : (
+                      <span className="info-value">{user?.phone || 'N/A'}</span>
+                    )}
                   </div>
                 </div>
 
@@ -136,9 +237,20 @@ export default function UserProfilePage() {
                   </div>
                   <div className="info-content">
                     <span className="info-label">Vai trò</span>
-                    <span className="info-value">
-                      {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Khách hàng'}
-                    </span>
+                    {isEditing && currentUserRole === 'ADMIN' ? (
+                      <select
+                        className="edit-select"
+                        value={editForm.role}
+                        onChange={(e) => handleInputChange('role', e.target.value)}
+                      >
+                        <option value="USER">Khách hàng</option>
+                        <option value="ADMIN">Quản trị viên</option>
+                      </select>
+                    ) : (
+                      <span className="info-value">
+                        {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Khách hàng'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -169,12 +281,33 @@ export default function UserProfilePage() {
             </div>
 
             <div className="profile-actions">
-              <button className="btn btn-primary">
-                Chỉnh sửa thông tin
-              </button>
-              <button className="btn btn-secondary">
-                Đổi mật khẩu
-              </button>
+              {isEditing ? (
+                <>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={handleSaveChanges}
+                    disabled={updating}
+                  >
+                    <FaSave /> {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </button>
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={handleCancelEdit}
+                    disabled={updating}
+                  >
+                    <FaTimes /> Hủy
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-primary" onClick={handleEditClick}>
+                    <FaEdit /> Chỉnh sửa thông tin
+                  </button>
+                  <button className="btn btn-secondary">
+                    Đổi mật khẩu
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

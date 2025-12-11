@@ -3,6 +3,7 @@ import { FaBars, FaUser, FaShoppingCart, FaSearch, FaHeart, FaSignInAlt, FaSignO
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { getAllParentCategories } from '../utils/api/categoryApi';
 import { getProductsBySeries } from '../utils/api/productApi';
+import { getMyCart } from '../utils/api/cartApi';
 import './header.css';
 
 // Helper function to create slug
@@ -28,6 +29,7 @@ export default function Header() {
   const [seriesProducts, setSeriesProducts] = useState({});
   const [activeMobileCategory, setActiveMobileCategory] = useState(null);
   const [activeMobileSeries, setActiveMobileSeries] = useState(null);
+  const [cartItemCount, setCartItemCount] = useState(0);
 
   useEffect(() => {
     getAllParentCategories()
@@ -43,7 +45,16 @@ export default function Header() {
   // Lắng nghe sự thay đổi của localStorage (đăng nhập/đăng xuất)
   useEffect(() => {
     const checkLoginStatus = () => {
-      setIsLoggedIn(!!localStorage.getItem('token'));
+      const isLoggedInNow = !!localStorage.getItem('token');
+      setIsLoggedIn(isLoggedInNow);
+      
+      // Nếu đăng xuất thì reset cart count
+      if (!isLoggedInNow) {
+        setCartItemCount(0);
+      } else {
+        // Nếu đăng nhập thì load cart
+        loadCartCount();
+      }
     };
 
     // Kiểm tra khi component mount
@@ -60,6 +71,47 @@ export default function Header() {
       window.removeEventListener('loginStatusChanged', checkLoginStatus);
     };
   }, []);
+
+  // Load số lượng sản phẩm trong giỏ hàng
+  const loadCartCount = async () => {
+    if (!localStorage.getItem('token')) {
+      setCartItemCount(0);
+      return;
+    }
+
+    try {
+      const cartData = await getMyCart();
+      // Tính tổng số lượng sản phẩm trong giỏ hàng
+      const totalCount = cartData?.cartItems?.reduce((total, item) => total + (item.quantity || 0), 0) || 0;
+      setCartItemCount(totalCount);
+    } catch (error) {
+      console.error('Error loading cart count:', error);
+      setCartItemCount(0);
+    }
+  };
+
+  // Load cart count khi component mount và user đã đăng nhập
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadCartCount();
+    }
+  }, [isLoggedIn]);
+
+  // Lắng nghe sự kiện cập nhật giỏ hàng
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      if (isLoggedIn) {
+        loadCartCount();
+      }
+    };
+
+    // Lắng nghe custom event khi có thay đổi giỏ hàng
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (isMobileDrawerOpen) {
@@ -239,7 +291,7 @@ export default function Header() {
             <Link to="/gio-hang" className="header-btn btn-cart">
               <FaShoppingCart />
               <span>Giỏ hàng</span>
-              <span className="cart-badge">2</span>
+              {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
             </Link>
           </div>
         </div>
@@ -516,7 +568,7 @@ export default function Header() {
               onClick={() => setIsMobileDrawerOpen(false)}
             >
               <FaShoppingCart style={{ marginRight: '8px' }} />
-              Giỏ hàng (2)
+              Giỏ hàng {cartItemCount > 0 && `(${cartItemCount})`}
             </Link>
           </div>
 

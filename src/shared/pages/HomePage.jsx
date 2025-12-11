@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaTruck, FaGift, FaPhone, FaAward, FaShoppingCart, FaHeart, FaEye } from 'react-icons/fa';
 import { getAllParentCategories } from '../utils/api/categoryApi';
-import { getAllVariants } from '../utils/api/variantApi';
+import { getVariantsByCategory } from '../utils/api/variantApi';
 import { addToCart } from '../utils/api/cartApi';
 import { addToWishlist } from '../utils/api/wishlistApi';
 import './HomePage.css';
@@ -11,7 +11,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [categoryVariants, setCategoryVariants] = useState({});
   const [loading, setLoading] = useState(true);
   const [processingProductId, setProcessingProductId] = useState(null);
 
@@ -70,21 +70,42 @@ export default function HomePage() {
   ];
 
   useEffect(() => {
-    Promise.all([
-      getAllParentCategories(),
-      getAllVariants()
-    ])
-      .then(([categoriesData, variantsData]) => {
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        setProducts(Array.isArray(variantsData) ? variantsData.filter(v => v.status === 'ACTIVE') : []);
-      })
-      .catch((error) => {
-        console.error('Error fetching data:', error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    loadCategoriesAndVariants();
   }, []);
+
+  const loadCategoriesAndVariants = async () => {
+    try {
+      setLoading(true);
+      
+      // Load categories first
+      const categoriesData = await getAllParentCategories();
+      const categories = Array.isArray(categoriesData) ? categoriesData : [];
+      setCategories(categories);
+      
+      // Load variants for each category
+      const variantsPromises = categories.map(async (category) => {
+        try {
+          const variants = await getVariantsByCategory(category.id);
+          return { categoryId: category.id, variants: variants.filter(v => v.status === 'ACTIVE') };
+        } catch (error) {
+          console.error(`Error loading variants for category ${category.id}:`, error);
+          return { categoryId: category.id, variants: [] };
+        }
+      });
+      
+      const variantsResults = await Promise.all(variantsPromises);
+      const variantsMap = {};
+      variantsResults.forEach(result => {
+        variantsMap[result.categoryId] = result.variants;
+      });
+      
+      setCategoryVariants(variantsMap);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -104,11 +125,29 @@ export default function HomePage() {
     }).format(price);
   };
 
-  const getProductsByCategory = (categoryId) => {
-    return products.filter(p => p.productId === categoryId).slice(0, 8);
+  const getCategoryVariants = (categoryId) => {
+    return categoryVariants[categoryId] || [];
   };
 
-  // Fake products for other categories (temporary until API is ready)
+  // Hàm chuyển đổi tên màu thành mã màu hex
+  const getColorHex = (color) => {
+    const colorMap = {
+      red: "#EF4444",
+      pink: "#EC4899", 
+      yellow: "#FBBF24",
+      black: "#000000",
+      white: "#FFFFFF",
+      blue: "#3B82F6",
+      green: "#10B981",
+      purple: "#8B5CF6",
+      gray: "#6B7280",
+      silver: "#C0C0C0",
+      gold: "#FFD700",
+      orange: "#F97316",
+      brown: "#A16207"
+    };
+    return colorMap[color?.toLowerCase()] || "#CCCCCC";
+  };
   const checkAuth = () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -136,6 +175,8 @@ export default function HomePage() {
       console.log('Product ID:', product.id);
       console.log('Product name:', product.slug);
       await addToCart(product.id, 1);
+      // Dispatch event để cập nhật số lượng giỏ hàng trong header
+      window.dispatchEvent(new Event('cartUpdated'));
       alert(`Đã thêm "${product.slug?.replace(/-/g, ' ')}" vào giỏ hàng!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -166,55 +207,7 @@ export default function HomePage() {
     }
   };
 
-  const getFakeProducts = (categoryId, categoryName) => {
-    const fakeProducts = [
-      {
-        id: `fake-${categoryId}-1`,
-        imageUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop",
-        slug: `${categoryName.toLowerCase()}-pro-11-inch-256gb`,
-        memory: "256",
-        color: "silver",
-        price: 25000000,
-        quantity: 15,
-        status: "ACTIVE",
-        productId: categoryId
-      },
-      {
-        id: `fake-${categoryId}-2`,
-        imageUrl: "https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&h=400&fit=crop",
-        slug: `${categoryName.toLowerCase()}-air-10-9-inch-128gb`,
-        memory: "128",
-        color: "space-gray",
-        price: 18000000,
-        quantity: 20,
-        status: "ACTIVE",
-        productId: categoryId
-      },
-      {
-        id: `fake-${categoryId}-3`,
-        imageUrl: "https://images.unsplash.com/photo-1585790050230-5dd28404f1e4?w=400&h=400&fit=crop",
-        slug: `${categoryName.toLowerCase()}-mini-8-3-inch-256gb`,
-        memory: "256",
-        color: "pink",
-        price: 16000000,
-        quantity: 12,
-        status: "ACTIVE",
-        productId: categoryId
-      },
-      {
-        id: `fake-${categoryId}-4`,
-        imageUrl: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop",
-        slug: `${categoryName.toLowerCase()}-pro-12-9-inch-512gb`,
-        memory: "512",
-        color: "gold",
-        price: 35000000,
-        quantity: 8,
-        status: "ACTIVE",
-        productId: categoryId
-      }
-    ];
-    return fakeProducts;
-  };
+
 
   return (
     <div className="homepage">
@@ -284,11 +277,11 @@ export default function HomePage() {
         </div>
       ) : (
         categories.map((category) => {
-          let categoryProducts = getProductsByCategory(category.id);
+          const variants = getCategoryVariants(category.id);
           
-          // If no real products, use fake data for demo
-          if (categoryProducts.length === 0) {
-            categoryProducts = getFakeProducts(category.id, category.name);
+          // Chỉ hiển thị danh mục nếu có sản phẩm thật từ database
+          if (variants.length === 0) {
+            return null;
           }
 
           return (
@@ -302,7 +295,7 @@ export default function HomePage() {
                 </div>
                 
                 <div className="products-grid">
-                  {categoryProducts.map((product) => (
+                  {variants.slice(0, 8).map((product) => (
                     <Link 
                       key={product.id} 
                       to={`/san-pham/${category.id}/${product.id}`}
@@ -333,10 +326,14 @@ export default function HomePage() {
                           {product.slug?.replace(/-/g, ' ') || 'Sản phẩm'}
                         </h3>
                         <div className="product-specs">
-                          <span className="spec-badge">{product.memory}GB</span>
-                          <span className="spec-badge color-badge" style={{
-                            background: product.color || '#ccc'
-                          }}>{product.color}</span>
+                          <span className="spec-badge memory-badge">{product.memory}GB</span>
+                          <span 
+                            className="spec-badge color-badge" 
+                            style={{ backgroundColor: getColorHex(product.color) }}
+                            title={product.color}
+                          >
+                            {product.color === 'white' && <span className="color-border"></span>}
+                          </span>
                         </div>
                         <div className="price-section">
                           <span className="current-price">{formatPrice(product.price)}</span>

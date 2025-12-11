@@ -22,41 +22,56 @@ API.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("username");
       window.location.href = "/dang-nhap";
     }
     return Promise.reject(error);
   }
 );
 
-// Lấy thông tin user đã đăng nhập
-export const getMyInfo = async () => {
+// Lấy thông tin user hiện tại
+export const getCurrentUser = async () => {
   try {
     const res = await API.get('/users/my_infor');
-    return res.data?.result || res.data || {};
+    return res.data?.result || res.data;
   } catch (error) {
-    console.error('Error fetching my info:', error);
+    console.error('Error fetching current user:', error);
     throw error;
   }
 };
 
-// Admin: Lấy danh sách tất cả users
-export const getUsers = async () => {
+// Cập nhật thông tin user hiện tại
+export const updateCurrentUser = async (userData) => {
+  try {
+    // Get current user ID first
+    const currentUser = await getCurrentUser();
+    const res = await API.put(`/users/${currentUser.id}`, userData);
+    return res.data?.result || res.data;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
+// Admin: Lấy tất cả users
+export const getAllUsers = async () => {
   try {
     const res = await API.get('/users');
-    return res.data?.result || res.data || [];
+    return res.data?.result || res.data;
   } catch (error) {
     console.error('Error fetching users:', error);
     throw error;
   }
 };
 
-// Admin: Tạo user mới
-export const createUser = async (userData) => {
+// Admin: Lấy user theo ID
+export const getUserById = async (userId) => {
   try {
-    const res = await API.post('/users', userData);
-    return res.data?.result || res.data || {};
+    const res = await API.get(`/users/${userId}`);
+    return res.data?.result || res.data;
   } catch (error) {
-    console.error('Error creating user:', error);
+    console.error('Error fetching user:', error);
     throw error;
   }
 };
@@ -65,7 +80,7 @@ export const createUser = async (userData) => {
 export const updateUser = async (userId, userData) => {
   try {
     const res = await API.put(`/users/${userId}`, userData);
-    return res.data?.result || res.data || {};
+    return res.data?.result || res.data;
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;
@@ -76,7 +91,7 @@ export const updateUser = async (userId, userData) => {
 export const deleteUser = async (userId) => {
   try {
     const res = await API.delete(`/users/${userId}`);
-    return res.data?.result || res.data || {};
+    return res.data?.result || res.data;
   } catch (error) {
     console.error('Error deleting user:', error);
     throw error;

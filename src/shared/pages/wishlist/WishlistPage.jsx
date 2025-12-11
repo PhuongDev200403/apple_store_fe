@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { FaHeart, FaArrowLeft, FaTrash, FaShoppingCart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { getMyWishlist, removeItemFromWishlist, clearMyWishlist } from '../../utils/api/wishlistApi';
+import { addToCart } from '../../utils/api/cartApi';
 import './WishlistPage.css';
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [processingItemId, setProcessingItemId] = useState(null);
 
   useEffect(() => {
     fetchWishlist();
@@ -65,6 +67,24 @@ export default function WishlistPage() {
       alert('Không thể xóa danh sách yêu thích. Vui lòng thử lại!');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddToCart = async (productVariant, productName) => {
+    if (!productVariant || productVariant.quantity === 0) {
+      alert('Sản phẩm hiện không khả dụng');
+      return;
+    }
+
+    try {
+      setProcessingItemId(productVariant.id);
+      await addToCart(productVariant.id, 1);
+      alert(`Đã thêm "${productName}" vào giỏ hàng!`);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      alert(err.response?.data?.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại!');
+    } finally {
+      setProcessingItemId(null);
     }
   };
 
@@ -160,15 +180,36 @@ export default function WishlistPage() {
                       <p className="product-price">
                         {formatPrice(pv.price || 0)}
                       </p>
+                      <div className="product-status">
+                        {pv.status !== 'ACTIVE' && (
+                          <span className="status-badge inactive">Ngừng bán</span>
+                        )}
+                        {pv.quantity === 0 && pv.status === 'ACTIVE' && (
+                          <span className="status-badge out-of-stock">Hết hàng</span>
+                        )}
+                        {pv.quantity > 0 && pv.status === 'ACTIVE' && (
+                          <span className="status-badge available">Còn {pv.quantity} sp</span>
+                        )}
+                      </div>
                       <div className="card-actions">
                         <Link
-                          to={`/product/${pv.productId || pv.id}`}
+                          to={`/san-pham/1/${pv.id}`}
                           className="btn btn-primary btn-sm"
                         >
                           Xem chi tiết
                         </Link>
-                        <button className="btn btn-secondary btn-sm">
-                          <FaShoppingCart /> Thêm vào giỏ
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleAddToCart(pv, pv.slug?.replace(/-/g, ' ') || 'Sản phẩm')}
+                          disabled={processingItemId === pv.id || pv.quantity === 0 || pv.status !== 'ACTIVE'}
+                        >
+                          {processingItemId === pv.id ? (
+                            <>Đang thêm...</>
+                          ) : (
+                            <>
+                              <FaShoppingCart /> Thêm vào giỏ
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

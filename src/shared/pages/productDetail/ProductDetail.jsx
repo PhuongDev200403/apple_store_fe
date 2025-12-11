@@ -1,99 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FaShoppingCart, FaHeart, FaArrowLeft } from 'react-icons/fa';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FaShoppingCart, FaHeart } from 'react-icons/fa';
 import { addToCart } from '../../utils/api/cartApi';
 import { addToWishlist } from '../../utils/api/wishlistApi';
+import { getVariantById } from '../../utils/api/variantApi';
+import { getProductById } from '../../utils/api/productApi';
 import './ProductDetail.css';
 
-const sampleData = {
-  code: 0,
-  result: [
-    {
-      id: 4,
-      price: 30000000.0,
-      status: "ACTIVE",
-      imageUrl:
-        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760153536/apple-devices/e56079ec-78ec-4e2d-b357-d61a2dff96ff.webp",
-      quantity: 9,
-      memory: "256",
-      sku: "IP15-RED-256",
-      color: "red",
-      specifications: {
-        ram: "8GB",
-        storage: "256GB",
-        chip: "A17 Pro",
-        screen_size: "6.7 inch",
-        battery: "4422 mAh",
-        camera: "48MP + 12MP + 12MP",
-        os: "iOS 17",
-        weight: "221g",
-      },
-    },
-    {
-      id: 5,
-      price: 30000000.0,
-      status: "ACTIVE",
-      imageUrl:
-        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760675814/apple-devices/6c944c39-042e-44ce-8aa2-51e24d0e337d.webp",
-      quantity: 23,
-      memory: "256",
-      sku: "IP15-PINK-256",
-      color: "pink",
-      specifications: {
-        ram: "8GB",
-        storage: "256GB",
-        chip: "A17 Pro",
-        screen_size: "6.7 inch",
-        battery: "4422 mAh",
-        camera: "48MP + 12MP + 12MP",
-        os: "iOS 17",
-        weight: "221g",
-      },
-    },
-    {
-      id: 6,
-      price: 30000000.0,
-      status: "ACTIVE",
-      imageUrl:
-        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760690952/apple-devices/be7c7878-f9c7-4b0c-a9ad-80dcd8ee4bc7.webp",
-      quantity: 19,
-      memory: "256",
-      sku: "IP15-YELOW-256",
-      color: "yellow",
-      specifications: {
-        ram: "8GB",
-        storage: "256GB",
-        chip: "A17 Pro",
-        screen_size: "6.7 inch",
-        battery: "4422 mAh",
-        camera: "48MP + 12MP + 12MP",
-        os: "iOS 17",
-        weight: "221g",
-      },
-    },
-    {
-      id: 7,
-      price: 23000000.0,
-      status: "ACTIVE",
-      imageUrl:
-        "https://res.cloudinary.com/dcv3lxcux/image/upload/v1760926850/apple-devices/77e1ccb2-8258-4b45-9d74-068f528e20a8.webp",
-      quantity: 10,
-      memory: "128",
-      sku: "IP15-YELLOW-128",
-      color: "yellow",
-      specifications: {
-        ram: "8GB",
-        storage: "128GB",
-        chip: "A17 Pro",
-        screen_size: "6.7 inch",
-        battery: "4422 mAh",
-        camera: "48MP + 12MP + 12MP",
-        os: "iOS 17",
-        weight: "221g",
-      },
-    },
-  ],
-}
+
 
 const relatedProducts = [
   {
@@ -141,26 +55,16 @@ const relatedProducts = [
 ]
 
 export default function ProductDetail() {
-  const { productId, category } = useParams();
+  const { productId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   
   const [variants, setVariants] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedMemory, setSelectedMemory] = useState("");
+  const [productInfo, setProductInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
-
-  // Extract variant ID and product ID from URL or state
-  const clickedVariantId = location.state?.variantId;
-  const actualProductId = location.state?.productId || extractIdFromSlug(productId);
-
-  useEffect(() => {
-    if (actualProductId) {
-      fetchVariants();
-    }
-  }, [actualProductId]);
 
   const extractIdFromSlug = (slug) => {
     if (!slug) return null;
@@ -171,37 +75,63 @@ export default function ProductDetail() {
     return isNaN(id) ? null : id;
   };
 
-  const fetchVariants = async () => {
+  // productId in URL is actually variantId
+  const variantIdFromUrl = extractIdFromSlug(productId);
+
+  useEffect(() => {
+    if (variantIdFromUrl) {
+      fetchVariantAndRelated();
+    }
+  }, [variantIdFromUrl]);
+
+  const fetchVariantAndRelated = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:8080/api/variants/${actualProductId}`);
-      const data = await response.json();
+      // Get the specific variant
+      const currentVariant = await getVariantById(variantIdFromUrl);
       
-      let variantsList = [];
-      if (data.code === 0 && Array.isArray(data.result)) {
-        variantsList = data.result;
-      } else if (Array.isArray(data)) {
-        variantsList = data;
+      if (!currentVariant) {
+        setError('Không tìm thấy sản phẩm');
+        return;
       }
       
-      setVariants(variantsList);
+      setSelectedVariant(currentVariant);
+      setSelectedMemory(currentVariant.memory);
       
-      // Set selected variant
-      if (clickedVariantId) {
-        const clickedVariant = variantsList.find(v => v.id === clickedVariantId);
-        if (clickedVariant) {
-          setSelectedVariant(clickedVariant);
-          setSelectedMemory(clickedVariant.memory);
-        } else {
-          setSelectedVariant(variantsList[0]);
-          setSelectedMemory(variantsList[0]?.memory);
+      // Get product information
+      if (currentVariant.productId) {
+        try {
+          const product = await getProductById(currentVariant.productId);
+          setProductInfo(product);
+        } catch (err) {
+          console.warn('Could not fetch product info:', err);
+        }
+      }
+      
+      // Get all variants of the same product
+      if (currentVariant.productId) {
+        try {
+          const response = await fetch(`http://localhost:8080/api/variants/${currentVariant.productId}`);
+          const data = await response.json();
+          
+          let variantsList = [];
+          if (data.code === 0 && Array.isArray(data.result)) {
+            variantsList = data.result;
+          } else if (Array.isArray(data)) {
+            variantsList = data;
+          }
+          
+          setVariants(variantsList.length > 0 ? variantsList : [currentVariant]);
+        } catch (err) {
+          console.warn('Could not fetch related variants:', err);
+          setVariants([currentVariant]);
         }
       } else {
-        setSelectedVariant(variantsList[0]);
-        setSelectedMemory(variantsList[0]?.memory);
+        setVariants([currentVariant]);
       }
+      
     } catch (err) {
       console.error('Error fetching variants:', err);
       setError('Không thể tải thông tin sản phẩm');
@@ -234,6 +164,8 @@ export default function ProductDetail() {
       console.log('Color:', selectedVariant.color, 'Memory:', selectedVariant.memory);
       
       await addToCart(selectedVariant.id, 1);
+      // Dispatch event để cập nhật số lượng giỏ hàng trong header
+      window.dispatchEvent(new Event('cartUpdated'));
       alert(`Đã thêm "${selectedVariant.color} - ${selectedVariant.memory}GB" vào giỏ hàng!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -308,6 +240,35 @@ export default function ProductDetail() {
     }).format(price);
   };
 
+  const getProductTitle = () => {
+    if (!selectedVariant) return 'Sản phẩm';
+    
+    // If we have product info, use product name + variant details
+    if (productInfo?.name) {
+      const variantDetails = [];
+      if (selectedVariant.color) {
+        variantDetails.push(selectedVariant.color.charAt(0).toUpperCase() + selectedVariant.color.slice(1));
+      }
+      if (selectedVariant.memory) {
+        variantDetails.push(`${selectedVariant.memory}GB`);
+      }
+      
+      return variantDetails.length > 0 
+        ? `${productInfo.name} ${variantDetails.join(' ')}`
+        : productInfo.name;
+    }
+    
+    // Fallback: use slug but make it more readable
+    if (selectedVariant.slug) {
+      return selectedVariant.slug
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
+    return 'Sản phẩm';
+  };
+
   if (loading) {
     return (
       <div className="product-detail-container">
@@ -371,7 +332,9 @@ export default function ProductDetail() {
 
         {/* Right Section - Product Info */}
         <div className="info-section">
-          <h1 className="product-title">iPhone 15 Pro Max</h1>
+          <h1 className="product-title">
+            {getProductTitle()}
+          </h1>
 
           <div className="price-section">
             <span className="price">{formatPrice(selectedVariant.price)}</span>

@@ -119,12 +119,25 @@ export async function getVariantsBySeries(seriesId) {
   return normalizeList(data);
 }
 
+export async function getVariantsByCategory(categoryId) {
+  const data = await httpGet(`/variants/category/${categoryId}`);
+  return normalizeList(data);
+}
+
 export async function getVariantById(variantId) {
-  const data = await httpGet(`/variants/detail/${variantId}`);
-  if (data?.code === 0 && data.result) return data.result;
-  if (data?.result) return data.result;
-  if (data?.data) return data.data;
-  return data;
+  // Try different possible endpoints
+  try {
+    const data = await httpGet(`/variants/detail/${variantId}`);
+    if (data?.code === 0 && data.result) return data.result;
+    if (data?.result) return data.result;
+    if (data?.data) return data.data;
+    return data;
+  } catch (error) {
+    // Fallback: get all variants and find the one we want
+    console.warn('Variant detail endpoint not available, using fallback');
+    const allVariants = await getAllVariants();
+    return allVariants.find(v => v.id === parseInt(variantId));
+  }
 }
 
 export async function createVariant(body) {
