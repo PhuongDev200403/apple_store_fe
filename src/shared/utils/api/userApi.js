@@ -65,6 +65,9 @@ export const getAllUsers = async () => {
   }
 };
 
+// Alias cho compatibility
+export const getUsers = getAllUsers;
+
 // Admin: Lấy user theo ID
 export const getUserById = async (userId) => {
   try {
@@ -87,6 +90,17 @@ export const updateUser = async (userId, userData) => {
   }
 };
 
+// Admin: Tạo user mới
+export const createUser = async (userData) => {
+  try {
+    const res = await API.post('/users', userData);
+    return res.data?.result || res.data;
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+};
+
 // Admin: Xóa user
 export const deleteUser = async (userId) => {
   try {
@@ -94,6 +108,17 @@ export const deleteUser = async (userId) => {
     return res.data?.result || res.data;
   } catch (error) {
     console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
+// Cập nhật mật khẩu
+export const updatePassword = async (passwordData) => {
+  try {
+    const res = await API.put('/users/change-password', passwordData);
+    return res.data?.result || res.data;
+  } catch (error) {
+    console.error('Error updating password:', error);
     throw error;
   }
 };

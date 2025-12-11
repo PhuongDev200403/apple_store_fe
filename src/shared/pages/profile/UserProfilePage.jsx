@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { FaUser, FaArrowLeft, FaEnvelope, FaPhone, FaCalendar, FaShieldAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaUser, FaArrowLeft, FaEnvelope, FaPhone, FaCalendar, FaShieldAlt, FaEdit, FaSave, FaTimes, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { getCurrentUser, updateCurrentUser } from '../../utils/api/userApi';
+import { getCurrentUser, updateCurrentUser, updatePassword } from '../../utils/api/userApi';
 import './UserProfilePage.css';
 
 export default function UserProfilePage() {
@@ -11,6 +11,20 @@ export default function UserProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [updating, setUpdating] = useState(false);
+  
+  // Password change states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    old: false,
+    new: false,
+    confirm: false
+  });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   
   const currentUserRole = localStorage.getItem('role');
 
@@ -96,6 +110,100 @@ export default function UserProfilePage() {
     } finally {
       setUpdating(false);
     }
+  };
+
+  // Password change functions
+  const handlePasswordChange = () => {
+    setShowPasswordModal(true);
+    setPasswordForm({
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+  };
+
+  const handlePasswordFormChange = (field, value) => {
+    setPasswordForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const handlePasswordSubmit = async () => {
+    // Validation
+    if (!passwordForm.oldPassword) {
+      alert('Vui lòng nhập mật khẩu cũ');
+      return;
+    }
+    
+    if (!passwordForm.newPassword) {
+      alert('Vui lòng nhập mật khẩu mới');
+      return;
+    }
+    
+    if (passwordForm.newPassword.length < 6) {
+      alert('Mật khẩu mới phải có ít nhất 6 ký tự');
+      return;
+    }
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('Mật khẩu mới và xác nhận mật khẩu không khớp');
+      return;
+    }
+
+    try {
+      setUpdatingPassword(true);
+      
+      await updatePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword
+      });
+      
+      setShowPasswordModal(false);
+      setPasswordForm({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      alert('Đổi mật khẩu thành công!');
+    } catch (err) {
+      console.error('Error updating password:', err);
+      
+      let errorMessage = 'Không thể đổi mật khẩu. Vui lòng thử lại!';
+      
+      if (err.response?.status === 400) {
+        errorMessage = 'Mật khẩu cũ không đúng';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  const handleClosePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordForm({
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    setShowPasswords({
+      old: false,
+      new: false,
+      confirm: false
+    });
   };
 
   const formatDate = (dateString) => {
@@ -303,8 +411,8 @@ export default function UserProfilePage() {
                   <button className="btn btn-primary" onClick={handleEditClick}>
                     <FaEdit /> Chỉnh sửa thông tin
                   </button>
-                  <button className="btn btn-secondary">
-                    Đổi mật khẩu
+                  <button className="btn btn-secondary" onClick={handlePasswordChange}>
+                    <FaLock /> Đổi mật khẩu
                   </button>
                 </>
               )}
@@ -327,6 +435,115 @@ export default function UserProfilePage() {
             </Link>
           </div>
         </div>
+
+        {/* Password Change Modal */}
+        {showPasswordModal && (
+          <div className="modal-overlay" onClick={handleClosePasswordModal}>
+            <div className="password-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>
+                  <FaLock /> Đổi mật khẩu
+                </h3>
+                <button className="modal-close" onClick={handleClosePasswordModal}>
+                  <FaTimes />
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <div className="password-form">
+                  <div className="form-group">
+                    <label>Mật khẩu cũ <span className="required">*</span></label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.old ? 'text' : 'password'}
+                        className="password-input"
+                        value={passwordForm.oldPassword}
+                        onChange={(e) => handlePasswordFormChange('oldPassword', e.target.value)}
+                        placeholder="Nhập mật khẩu hiện tại"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('old')}
+                      >
+                        {showPasswords.old ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Mật khẩu mới <span className="required">*</span></label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.new ? 'text' : 'password'}
+                        className="password-input"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => handlePasswordFormChange('newPassword', e.target.value)}
+                        placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('new')}
+                      >
+                        {showPasswords.new ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Xác nhận mật khẩu mới <span className="required">*</span></label>
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        className="password-input"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => handlePasswordFormChange('confirmPassword', e.target.value)}
+                        placeholder="Nhập lại mật khẩu mới"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                      >
+                        {showPasswords.confirm ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="password-requirements">
+                    <p>Yêu cầu mật khẩu:</p>
+                    <ul>
+                      <li className={passwordForm.newPassword.length >= 6 ? 'valid' : ''}>
+                        Ít nhất 6 ký tự
+                      </li>
+                      <li className={passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.confirmPassword ? 'valid' : ''}>
+                        Mật khẩu xác nhận khớp
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  className="btn btn-primary"
+                  onClick={handlePasswordSubmit}
+                  disabled={updatingPassword}
+                >
+                  <FaSave /> {updatingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleClosePasswordModal}
+                  disabled={updatingPassword}
+                >
+                  <FaTimes /> Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
